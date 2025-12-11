@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/game_screen.dart';
 import 'utils/constants.dart';
+import 'utils/storage.dart';
 
-void main() {
+void main() async {
   // Flutter ni ishga tushirish
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Storage'ni initialize qilish
+  await StorageManager.instance.init();
 
   // Faqat portrait mode
   SystemChrome.setPreferredOrientations([
@@ -38,14 +42,24 @@ class SnakeRushApp extends StatelessWidget {
 }
 
 // =============================================================================
-// MAIN MENU - Bosh menyu (oddiy versiya)
+// MAIN MENU - Bosh menyu
 // =============================================================================
 
-class MainMenu extends StatelessWidget {
+class MainMenu extends StatefulWidget {
   const MainMenu({super.key});
 
   @override
+  State<MainMenu> createState() => _MainMenuState();
+}
+
+class _MainMenuState extends State<MainMenu> {
+  final StorageManager _storage = StorageManager.instance;
+
+  @override
   Widget build(BuildContext context) {
+    final bestScore = _storage.getBestScore();
+    final coins = _storage.getCoins();
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -89,7 +103,18 @@ class MainMenu extends StatelessWidget {
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 60),
+                const SizedBox(height: 32),
+
+                // Best Score va Coins
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildStatCard('⭐', 'Best', '$bestScore'),
+                    const SizedBox(width: 16),
+                    _buildStatCard('🪙', 'Coins', '$coins'),
+                  ],
+                ),
+                const SizedBox(height: 32),
 
                 // Play Button
                 _buildMenuButton(
@@ -102,7 +127,7 @@ class MainMenu extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) => const GameScreen(),
                       ),
-                    );
+                    ).then((_) => setState(() {})); // Refresh after game
                   },
                 ),
                 const SizedBox(height: 20),
@@ -143,6 +168,41 @@ class MainMenu extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String emoji, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: GameConstants.primaryColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: GameConstants.primaryColor,
+          width: 2,
+        ),
+      ),
+      child: Column(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 24)),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: GameConstants.textSecondaryColor,
+              fontSize: 12,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

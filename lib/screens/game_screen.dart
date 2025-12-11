@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flame/game.dart';
 import '../game/snake_game.dart';
 import '../models/direction.dart';
+import '../models/difficulty.dart';
 import '../utils/constants.dart';
 
 // =============================================================================
@@ -9,7 +10,12 @@ import '../utils/constants.dart';
 // =============================================================================
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final Difficulty difficulty;
+
+  const GameScreen({
+    super.key,
+    this.difficulty = Difficulty.medium,
+  });
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -24,7 +30,7 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    game = SnakeGame();
+    game = SnakeGame(difficulty: widget.difficulty);
 
     // Callbacks
     game.onScoreUpdate = (score, coins) {
@@ -105,6 +111,33 @@ class _GameScreenState extends State<GameScreen> {
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
+          ),
+
+          // Difficulty indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: widget.difficulty.color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(15),
+              border: Border.all(
+                color: widget.difficulty.color,
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Text(widget.difficulty.emoji, style: const TextStyle(fontSize: 16)),
+                const SizedBox(width: 6),
+                Text(
+                  widget.difficulty.name,
+                  style: TextStyle(
+                    color: widget.difficulty.color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
 
           // Score
