@@ -4,6 +4,7 @@ import '../game/snake_game.dart';
 import '../models/direction.dart';
 import '../models/difficulty.dart';
 import '../utils/constants.dart';
+import '../utils/storage.dart';
 
 // =============================================================================
 // GAME SCREEN - O'yin ekrani
@@ -25,11 +26,14 @@ class _GameScreenState extends State<GameScreen> {
   late SnakeGame game;
   int currentScore = 0;
   int currentCoins = 0;
+  int totalCoins = 0; // Umumiy coinlar
   bool showGameOver = false;
+  final StorageManager _storage = StorageManager.instance;
 
   @override
   void initState() {
     super.initState();
+    totalCoins = _storage.getCoins(); // Umumiy coinlarni yuklash
     game = SnakeGame(difficulty: widget.difficulty);
 
     // Callbacks
@@ -41,9 +45,15 @@ class _GameScreenState extends State<GameScreen> {
     };
 
     game.onGameOver = (score, coins, isNewBest) {
-      setState(() {
-        showGameOver = true;
-      });
+      // Agar revive ishlatilmagan bo'lsa, revive dialog ko'rsat
+      if (!game.hasRevived) {
+        _showReviveDialog();
+      } else {
+        // Agar allaqachon revive ishlatilgan bo'lsa, oddiy game over
+        setState(() {
+          showGameOver = true;
+        });
+      }
     };
   }
 
@@ -54,8 +64,13 @@ class _GameScreenState extends State<GameScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top bar - Score va Coins
+            // Top bar - Score va difficulty
             _buildTopBar(),
+
+            // Coins header - Yuqorida
+            _buildCoinsHeader(),
+
+            const SizedBox(height: 8),
 
             // O'yin maydoni
             Expanded(
@@ -105,13 +120,14 @@ class _GameScreenState extends State<GameScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // Back button
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white),
             onPressed: () => Navigator.pop(context),
           ),
+
+          const Spacer(),
 
           // Difficulty indicator
           Container(
@@ -126,7 +142,7 @@ class _GameScreenState extends State<GameScreen> {
             ),
             child: Row(
               children: [
-                Text(widget.difficulty.emoji, style: const TextStyle(fontSize: 16)),
+                Text(widget.difficulty.emoji, style: const TextStyle(fontSize: 14)),
                 const SizedBox(width: 6),
                 Text(
                   widget.difficulty.name,
@@ -140,58 +156,102 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
 
+          const Spacer(),
+
           // Score
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: GameConstants.primaryColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               border: Border.all(
                 color: GameConstants.primaryColor,
-                width: 2,
+                width: 1.5,
               ),
             ),
             child: Row(
               children: [
-                const Icon(Icons.star, color: Colors.amber, size: 20),
-                const SizedBox(width: 8),
+                const Icon(Icons.star, color: Colors.amber, size: 16),
+                const SizedBox(width: 6),
                 Text(
                   '$currentScore',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // Coins
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: GameConstants.accentColor.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: GameConstants.accentColor,
-                width: 2,
-              ),
-            ),
-            child: Row(
-              children: [
-                const Text('🪙', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
-                Text(
-                  '$currentCoins',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+  // Coins yuqorida - alohida widget (faqat ko'rsatish uchun)
+  Widget _buildCoinsHeader() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            GameConstants.accentColor.withOpacity(0.3),
+            GameConstants.accentColor.withOpacity(0.1),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: GameConstants.accentColor,
+          width: 2,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Umumiy coinlar
+          Row(
+            children: [
+              const Text('🪙', style: TextStyle(fontSize: 20)),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Umumiy',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                    ),
                   ),
+                  Text(
+                    '$totalCoins',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // O'yindan olingan coinlar
+          Row(
+            children: [
+              const Text('+', style: TextStyle(color: Colors.white70, fontSize: 16)),
+              const SizedBox(width: 4),
+              Text(
+                '$currentCoins',
+                style: TextStyle(
+                  color: GameConstants.accentColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),
@@ -362,6 +422,197 @@ class _GameScreenState extends State<GameScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Revive Dialog - Game Over vaqtida
+  void _showReviveDialog() {
+    final canUseFreRevive = !_storage.hasUsedFreeReviveToday();
+    final hasEnoughCoins = totalCoins >= GameConstants.reviveCost;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: GameConstants.backgroundColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: GameConstants.primaryColor, width: 2),
+        ),
+        title: const Text(
+          '💀 GAME OVER!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Score: $currentScore',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'DAVOM ETISH?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Bepul revive (agar mavjud bo'lsa)
+            if (canUseFreRevive) ...[
+              ElevatedButton(
+                onPressed: () async {
+                  await _storage.useFreeRevive();
+                  await _storage.incrementTotalRevives();
+                  game.revive();
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  minimumSize: const Size(double.infinity, 50),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.play_arrow, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'BEPUL DAVOM ETISH',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+
+            // Coin bilan revive
+            ElevatedButton(
+              onPressed: hasEnoughCoins
+                  ? () async {
+                await _storage.spendCoins(GameConstants.reviveCost);
+                await _storage.incrementTotalRevives();
+                setState(() {
+                  totalCoins = _storage.getCoins();
+                });
+                game.revive();
+                Navigator.pop(context);
+              }
+                  : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: GameConstants.accentColor,
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('🪙', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${GameConstants.reviveCost} COIN',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            if (!hasEnoughCoins)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Coinlar yetarli emas! (${totalCoins}/${GameConstants.reviveCost})',
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 12),
+
+            // Reklama ko'rib revive (demo - real ads yo'q)
+            OutlinedButton(
+              onPressed: () async {
+                // Demo: Reklama ko'rildi deb hisoblaymiz
+                await _storage.incrementTotalRevives();
+                game.revive();
+                Navigator.pop(context);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('📺 Reklama ko\'rildi! Davom eting!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.blue, width: 2),
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.play_circle_outline, color: Colors.blue, size: 24),
+                  SizedBox(width: 8),
+                  Text(
+                    'REKLAMA KO\'RIB DAVOM ETISH',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Yo'q, game over
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                setState(() {
+                  showGameOver = true;
+                });
+              },
+              child: const Text(
+                'YO\'Q, TUGAT',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

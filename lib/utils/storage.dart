@@ -200,6 +200,35 @@ class StorageManager {
   }
 
   // ---------------------------------------------------------------------------
+  // REVIVE SYSTEM - Qayta tirilish
+  // ---------------------------------------------------------------------------
+
+  // Bugungi bepul revive ishlatilganmi
+  bool hasUsedFreeReviveToday() {
+    final lastReviveDate = _prefs?.getString('last_free_revive_date') ?? '';
+    final today = DateTime.now();
+    final todayString = '${today.year}-${today.month}-${today.day}';
+    return lastReviveDate == todayString;
+  }
+
+  // Bepul revive ishlatish
+  Future<void> useFreeRevive() async {
+    final today = DateTime.now();
+    final todayString = '${today.year}-${today.month}-${today.day}';
+    await _prefs?.setString('last_free_revive_date', todayString);
+  }
+
+  // Jami revive soni
+  Future<void> incrementTotalRevives() async {
+    final current = getTotalRevives();
+    await _prefs?.setInt('total_revives', current + 1);
+  }
+
+  int getTotalRevives() {
+    return _prefs?.getInt('total_revives') ?? 0;
+  }
+
+  // ---------------------------------------------------------------------------
   // RESET - Hammasini o'chirish (debug uchun)
   // ---------------------------------------------------------------------------
 

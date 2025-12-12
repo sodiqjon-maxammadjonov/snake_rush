@@ -30,6 +30,7 @@ class SnakeGame extends FlameGame {
   int foodEaten = 0;
   bool isGameOver = false;
   bool isPaused = false;
+  bool hasRevived = false; // Bir o'yinda faqat 1 marta revive
 
   // Storage
   final StorageManager _storage = StorageManager.instance;
@@ -86,6 +87,7 @@ class SnakeGame extends FlameGame {
     isGameOver = false;
     isPaused = false;
     isPowerUpActive = false;
+    hasRevived = false;
     currentSpeed = difficulty.initialSpeed; // Difficulty bo'yicha
     timeSinceLastMove = 0;
   }
@@ -229,6 +231,24 @@ class SnakeGame extends FlameGame {
   void restart() {
     snake.reset();
     _initializeGame();
+  }
+
+  // Revive - Qayta tirilish
+  void revive() {
+    if (isGameOver && !hasRevived) {
+      // Ilonni kichraytirish (oxirgi 5 segmentni qoldirish)
+      if (snake.body.length > 5) {
+        snake.body = snake.body.sublist(0, 5);
+      }
+
+      // O'yinni davom ettirish
+      isGameOver = false;
+      hasRevived = true;
+      isPowerUpActive = false;
+
+      // Biroz sekinlashtirish
+      currentSpeed = difficulty.initialSpeed;
+    }
   }
 
   @override

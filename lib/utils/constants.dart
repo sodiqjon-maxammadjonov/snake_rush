@@ -92,6 +92,23 @@ class GameConstants {
   static const int streakReward7Days = 100; // 7 kun ketma-ket = 100 coins
 
   // ---------------------------------------------------------------------------
+  // REVIVE SYSTEM - Qayta tirilish
+  // ---------------------------------------------------------------------------
+  static const int reviveCost = 50;         // 50 coins = 1 revive
+  static const int adRewardCoins = 25;      // Reklama korish = 25 coins
+  static const int freeRevivesPerDay = 1;   // Kuniga 1 bepul revive
+
+  // ---------------------------------------------------------------------------
+  // COIN PACKS - Coin paketlari (sotib olish)
+  // ---------------------------------------------------------------------------
+  static const Map<String, dynamic> coinPacks = {
+    'small': {'coins': 100, 'price': '\$0.99'},
+    'medium': {'coins': 500, 'price': '\$2.99'},
+    'large': {'coins': 1500, 'price': '\$4.99'},
+    'mega': {'coins': 5000, 'price': '\$9.99'},
+  };
+
+  // ---------------------------------------------------------------------------
   // SKINS - Skin narxlari
   // ---------------------------------------------------------------------------
   static const Map<String, int> skinPrices = {
@@ -103,12 +120,12 @@ class GameConstants {
     'orange': 150,   // 150 coins
     'gradient': 200, // 200 coins
     'neon': 300,     // 300 coins
-    'uzbek': 400,    // 400 coins
+    'uzbek': 400,    // 400 coins (O'zbek andijasi)
     'diamond': 500,  // 500 coins
   };
 
   // ---------------------------------------------------------------------------
-  // ACHIEVEMENTS
+  // ACHIEVEMENTS - Achievement mukofotlari (coins)
   // ---------------------------------------------------------------------------
   static const Map<String, int> achievementRewards = {
     'first_game': 10,
@@ -129,15 +146,15 @@ class GameConstants {
   };
 
   // ---------------------------------------------------------------------------
-  // ANIMATION DURATIONS
+  // ANIMATION DURATIONS - Animatsiya davomiyligi (milliseconds)
   // ---------------------------------------------------------------------------
   static const int buttonAnimationDuration = 200;
   static const int pageTransitionDuration = 300;
   static const int gameOverAnimationDuration = 500;
 
   // ---------------------------------------------------------------------------
-  // SOUND SETTINGS
+  // SOUND SETTINGS - Tovush sozlamalari
   // ---------------------------------------------------------------------------
-  static const double defaultVolume = 0.7;
-  static const double musicVolume = 0.4;
+  static const double defaultVolume = 0.7; // 70% tovush
+  static const double musicVolume = 0.4;   // 40% musiqa
 }

@@ -2,7 +2,9 @@ import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import '../models/position.dart';
 import '../models/direction.dart';
+import '../models/skin.dart';
 import '../utils/constants.dart';
+import '../utils/storage.dart';
 
 // =============================================================================
 // SNAKE CLASS - Ilon komponenti
@@ -46,24 +48,32 @@ class Snake extends Component {
     }
   }
 
+  // Ilonni harakatlantirish
   void move() {
+    // Yo'nalishni yangilash
     currentDirection = nextDirection;
 
+    // Yangi bosh pozitsiyasi
     final newHead = body.first.moveInDirection(currentDirection);
 
+    // Yangi boshni qo'shamiz
     body.insert(0, newHead);
 
+    // Agar o'sish buffer bo'lsa, dumni qirqmaymiz
     if (growthBuffer > 0) {
       growthBuffer--;
     } else {
+      // Dumni qirqamiz (ilon o'smaydi)
       body.removeLast();
     }
   }
 
+  // Ovqat yeyish - ilon o'sadi
   void eat(int growthAmount) {
     growthBuffer += growthAmount;
   }
 
+  // Stage'ni yangilash (ochko bo'yicha)
   void updateStage(int score) {
     if (score >= GameConstants.stage4Score) {
       currentStage = 4;
@@ -76,6 +86,7 @@ class Snake extends Component {
     }
   }
 
+  // Devorga urilishni tekshirish
   bool checkWallCollision() {
     final head = body.first;
     return head.x < 0 ||
@@ -84,8 +95,10 @@ class Snake extends Component {
         head.y >= GameConstants.gridHeight;
   }
 
+  // O'ziga urilishni tekshirish
   bool checkSelfCollision() {
     final head = body.first;
+    // Boshdan keyingi segmentlarni tekshiramiz
     for (int i = 1; i < body.length; i++) {
       if (body[i] == head) {
         return true;
@@ -94,7 +107,17 @@ class Snake extends Component {
     return false;
   }
 
+  // Hozirgi rangni qaytaradi (stage va skin bo'yicha)
   Color get currentColor {
+    // Avval tanlangan skinni olish
+    final selectedSkinId = StorageManager.instance.getSelectedSkin();
+    final skin = SnakeSkins.getById(selectedSkinId);
+
+    if (skin != null) {
+      return skin.color;
+    }
+
+    // Agar skin topilmasa, stage bo'yicha
     switch (currentStage) {
       case 1:
         return GameConstants.snakeStage1Color;
@@ -109,26 +132,51 @@ class Snake extends Component {
     }
   }
 
+  // Secondary color (gradient uchun)
+  Color? get secondaryColor {
+    final selectedSkinId = StorageManager.instance.getSelectedSkin();
+    final skin = SnakeSkins.getById(selectedSkinId);
+    return skin?.secondaryColor;
+  }
+
+  // Ilonni chizish
   @override
   void render(Canvas canvas) {
     final cellSize = GameConstants.cellSize;
+    final hasGradient = secondaryColor != null;
 
     for (int i = 0; i < body.length; i++) {
       final segment = body[i];
       final isHead = i == 0;
 
+      // Pozitsiyani hisoblash
       final x = segment.x * cellSize;
       final y = segment.y * cellSize;
 
+      // Segment rangini hisoblash
       Color segmentColor = currentColor;
       if (!isHead) {
-        segmentColor = segmentColor.withValues(alpha: 0.8 - (i * 0.01));
+        // Tana biroz och rangda
+        segmentColor = segmentColor.withOpacity(0.8 - (i * 0.01));
       }
 
-      final paint = Paint()
-        ..color = segmentColor
-        ..style = PaintingStyle.fill;
+      // Gradient uchun paint
+      Paint paint;
+      if (hasGradient && isHead) {
+        paint = Paint()
+          ..shader = LinearGradient(
+            colors: [currentColor, secondaryColor!],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(Rect.fromLTWH(x, y, cellSize, cellSize))
+          ..style = PaintingStyle.fill;
+      } else {
+        paint = Paint()
+          ..color = segmentColor
+          ..style = PaintingStyle.fill;
+      }
 
+      // Bosh - doira
       if (isHead) {
         canvas.drawCircle(
           Offset(x + cellSize / 2, y + cellSize / 2),
@@ -136,10 +184,12 @@ class Snake extends Component {
           paint,
         );
 
+        // Ko'zlar
         final eyePaint = Paint()
           ..color = Colors.white
           ..style = PaintingStyle.fill;
 
+        // Ko'z pozitsiyalari yo'nalishga qarab
         Offset leftEye, rightEye;
         switch (currentDirection) {
           case Direction.right:
@@ -174,6 +224,7 @@ class Snake extends Component {
     }
   }
 
+  // Reset - o'yinni qaytadan boshlash uchun
   void reset() {
     final centerX = GameConstants.gridWidth ~/ 2;
     final centerY = GameConstants.gridHeight ~/ 2;
