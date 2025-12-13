@@ -1,5 +1,7 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:snake_rush/screens/main/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -15,10 +17,10 @@ class SnakeRushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return CupertinoApp(
       title: 'Snake Rush',
       debugShowCheckedModeBanner: false,
-      home: Center(child: Text('data'),),
+      home: MainScreen(),
     );
   }
 }
