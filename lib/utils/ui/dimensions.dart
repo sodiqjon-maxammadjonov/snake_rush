@@ -64,7 +64,7 @@ class Dimensions {
   double get buttonWidth => isTablet ? _scale(300) : width * 0.7;
 
   double get cardHeight => _scale(80);
-  double get cardHeightSmall => _scale(60);
+  double get cardHeightSmall => _scale(85);
 
   double get backButtonSize => _scale(44);
 

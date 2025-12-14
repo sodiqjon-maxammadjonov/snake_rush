@@ -33,7 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onLanguageChanged() {
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _openSettings() {
@@ -49,76 +49,73 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
-    final screenHeight = MediaQuery.of(context).size.height;
-    final safeTop = MediaQuery.of(context).padding.top;
-    final safeBottom = MediaQuery.of(context).padding.bottom;
-    final availableHeight = screenHeight - safeTop - safeBottom;
 
     return CupertinoPageScaffold(
       child: GlassBubblesBackground(
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight,
-                    maxWidth: d.maxContentWidth,
-                  ),
-                  child: IntrinsicHeight(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: d.paddingScreen,
-                        vertical: d.spaceMedium,
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              MyButton(
-                                key: _settingsKey,
-                                type: ButtonType.icon,
-                                onPressed: _openSettings,
-                                child: Text(
-                                  '⚙️',
-                                  style: TextStyle(fontSize: d.iconMedium),
-                                ),
-                              ),
-                              const CoinWidget(coins: 7),
-                            ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: d.maxContentWidth),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      d.paddingScreen,
+                      d.spaceMedium,
+                      d.paddingScreen,
+                      0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        MyButton(
+                          key: _settingsKey,
+                          type: ButtonType.icon,
+                          onPressed: _openSettings,
+                          child: Text(
+                            '⚙️',
+                            style: TextStyle(fontSize: d.iconMedium),
                           ),
+                        ),
+                        const CoinWidget(coins: 7),
+                      ],
+                    ),
+                  ),
 
-                          SizedBox(height: availableHeight * 0.1),
-
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
                           Text(
                             '🐍',
                             style: TextStyle(fontSize: d.iconHuge),
                           ),
 
-                          const Spacer(),
-
-                          MyButton(
-                            type: ButtonType.primary,
-                            text: _tr('play'),
-                            icon: CupertinoIcons.play_fill,
-                            onPressed: () {},
-                          ),
-
-                          SizedBox(height: d.spaceLarge),
-
-                          Row(
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              _buildSmallButton('🛒', _tr('shop'), d),
-                              SizedBox(width: d.spaceMedium),
-                              _buildSmallButton('🏆', _tr('top'), d),
-                              SizedBox(width: d.spaceMedium),
-                              _buildSmallButton('👤', _tr('me'), d),
+                              MyButton(
+                                type: ButtonType.primary,
+                                text: _tr('play'),
+                                icon: CupertinoIcons.play_fill,
+                                onPressed: () {},
+                              ),
+
+                              SizedBox(height: d.spaceLarge),
+
+                              Row(
+                                children: [
+                                  _buildSmallButton('🛒', _tr('shop'), d),
+                                  SizedBox(width: d.spaceMedium),
+                                  _buildSmallButton('🏆', _tr('top'), d),
+                                  SizedBox(width: d.spaceMedium),
+                                  _buildSmallButton('👤', _tr('me'), d),
+                                ],
+                              ),
                             ],
                           ),
-
-                          const Spacer(),
 
                           MyButton(
                             type: ButtonType.glass,
@@ -127,6 +124,7 @@ class _MainScreenState extends State<MainScreen> {
                             onPressed: () {},
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text('🎁', style: TextStyle(fontSize: d.iconMedium)),
                                 SizedBox(width: d.spaceMedium),
@@ -143,15 +141,15 @@ class _MainScreenState extends State<MainScreen> {
                               ],
                             ),
                           ),
-
-                          SizedBox(height: d.spaceMedium),
                         ],
                       ),
                     ),
                   ),
-                ),
-              );
-            },
+
+                  SizedBox(height: d.spaceMedium),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -170,15 +168,14 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             Text(emoji, style: TextStyle(fontSize: d.iconMedium)),
             SizedBox(height: d.spaceTiny),
-            Flexible(
-              child: MyText(
-                title,
-                fontSize: d.caption,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+            MyText(
+              title,
+              fontSize: d.caption,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ],
         ),

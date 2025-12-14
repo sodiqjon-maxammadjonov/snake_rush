@@ -39,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _onLanguageChanged() {
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _openLeaderboard() {
@@ -79,102 +79,113 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: CupertinoIcons.back,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const Spacer(),
-                    Text('⚙️', style: TextStyle(fontSize: d.iconMedium)),
-                    SizedBox(width: d.spaceSmall),
-                    MyText(
-                      _tr('settings'),
-                      fontSize: d.title,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('⚙️', style: TextStyle(fontSize: d.iconMedium)),
+                          SizedBox(width: d.spaceSmall),
+                          Flexible(
+                            child: MyText(
+                              _tr('settings'),
+                              fontSize: d.title,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
                     SizedBox(width: d.backButtonSize),
                   ],
                 ),
               ),
 
               Expanded(
-                child: SingleChildScrollView(
+                child: ListView(
                   padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
-                  child: Column(
-                    children: [
-                      SizedBox(height: d.spaceLarge),
+                  physics: const BouncingScrollPhysics(),
+                  children: [
+                    SizedBox(height: d.spaceLarge),
 
-                      _buildVolumeControl(
-                        d: d,
-                        icon: '🎮',
-                        title: _tr('game_sound'),
-                        volume: _gameVolume,
-                        onChanged: (value) {
-                          setState(() => _gameVolume = value);
-                          _audioManager.setGameVolume(value);
-                        },
-                      ),
+                    _buildVolumeControl(
+                      d: d,
+                      icon: '🎮',
+                      title: _tr('game_sound'),
+                      volume: _gameVolume,
+                      onChanged: (value) {
+                        setState(() => _gameVolume = value);
+                        _audioManager.setGameVolume(value);
+                      },
+                    ),
 
-                      SizedBox(height: d.space),
+                    SizedBox(height: d.space),
 
-                      _buildVolumeControl(
-                        d: d,
-                        icon: '🎵',
-                        title: _tr('music'),
-                        volume: _musicVolume,
-                        onChanged: (value) {
-                          setState(() => _musicVolume = value);
-                          _audioManager.setMusicVolume(value);
-                        },
-                      ),
+                    _buildVolumeControl(
+                      d: d,
+                      icon: '🎵',
+                      title: _tr('music'),
+                      volume: _musicVolume,
+                      onChanged: (value) {
+                        setState(() => _musicVolume = value);
+                        _audioManager.setMusicVolume(value);
+                      },
+                    ),
 
-                      SizedBox(height: d.spaceXLarge),
+                    SizedBox(height: d.spaceXLarge),
 
-                      _buildGameOption(
-                        d: d,
-                        key: _leaderboardKey,
-                        icon: '🏆',
-                        title: _tr('leaderboard'),
-                        onTap: _openLeaderboard,
-                      ),
+                    _buildGameOption(
+                      d: d,
+                      key: _leaderboardKey,
+                      icon: '🏆',
+                      title: _tr('leaderboard'),
+                      onTap: _openLeaderboard,
+                    ),
 
-                      SizedBox(height: d.spaceMedium),
+                    SizedBox(height: d.spaceMedium),
 
-                      _buildGameOption(
-                        d: d,
-                        icon: '❓',
-                        title: _tr('how_to_play'),
-                        onTap: () {},
-                      ),
+                    _buildGameOption(
+                      d: d,
+                      icon: '❓',
+                      title: _tr('how_to_play'),
+                      onTap: () {},
+                    ),
 
-                      SizedBox(height: d.spaceMedium),
+                    SizedBox(height: d.spaceMedium),
 
-                      _buildGameOption(
-                        d: d,
-                        icon: '📱',
-                        title: _tr('share_game'),
-                        onTap: () {},
-                      ),
+                    _buildGameOption(
+                      d: d,
+                      icon: '📱',
+                      title: _tr('share_game'),
+                      onTap: () {},
+                    ),
 
-                      SizedBox(height: d.spaceMedium),
+                    SizedBox(height: d.spaceMedium),
 
-                      _buildGameOption(
-                        d: d,
-                        key: _languageKey,
-                        icon: _languageService.flag,
-                        title: _tr('language'),
-                        subtitle: _languageService.name,
-                        onTap: _openLanguageSelector,
-                      ),
+                    _buildGameOption(
+                      d: d,
+                      key: _languageKey,
+                      icon: _languageService.flag,
+                      title: _tr('language'),
+                      subtitle: _languageService.name,
+                      onTap: _openLanguageSelector,
+                    ),
 
-                      SizedBox(height: d.spaceXLarge),
+                    SizedBox(height: d.spaceXLarge),
 
-                      MyText(
+                    Center(
+                      child: MyText(
                         'Snake Rush v1.0',
                         fontSize: d.caption,
                         color: AppColors.textMuted,
                       ),
+                    ),
 
-                      SizedBox(height: d.spaceLarge),
-                    ],
-                  ),
+                    SizedBox(height: d.spaceLarge),
+                  ],
                 ),
               ),
             ],
@@ -203,17 +214,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       padding: EdgeInsets.all(d.paddingCard),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
               Text(icon, style: TextStyle(fontSize: d.iconMedium)),
               SizedBox(width: d.spaceMedium),
-              MyText(
-                title,
-                fontSize: d.body,
-                color: AppColors.textPrimary,
+              Expanded(
+                child: MyText(
+                  title,
+                  fontSize: d.body,
+                  color: AppColors.textPrimary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              const Spacer(),
               MyText(
                 '${(volume * 100).toInt()}%',
                 fontSize: d.body,
@@ -229,7 +244,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 volume == 0 ? '🔇' : '🔉',
                 style: TextStyle(fontSize: d.iconSmall),
               ),
-              SizedBox(width: d.spaceSmall),
               Expanded(
                 child: CupertinoSlider(
                   value: volume,
@@ -239,7 +253,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: onChanged,
                 ),
               ),
-              SizedBox(width: d.spaceSmall),
               Text('🔊', style: TextStyle(fontSize: d.iconSmall)),
             ],
           ),
@@ -266,26 +279,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(icon, style: TextStyle(fontSize: d.iconMedium)),
           SizedBox(width: d.spaceMedium),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 MyText(
                   title,
                   fontSize: d.body,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textPrimary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (subtitle != null) ...[
                   SizedBox(height: d.spaceTiny),
                   MyText(
-                    subtitle,
+                    '  : $subtitle',
                     fontSize: d.caption,
                     color: AppColors.textSecondary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],
             ),
           ),
+          SizedBox(width: d.spaceSmall),
           Icon(
             CupertinoIcons.chevron_right,
             size: d.iconSmall,
@@ -320,16 +339,26 @@ class LanguageSelectorScreen extends StatelessWidget {
                       icon: CupertinoIcons.back,
                       onPressed: () => Navigator.of(context).pop(),
                     ),
-                    const Spacer(),
-                    Text('🌐', style: TextStyle(fontSize: d.iconMedium)),
-                    SizedBox(width: d.spaceSmall),
-                    MyText(
-                      languageService.translate('language'),
-                      fontSize: d.title,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('🌐', style: TextStyle(fontSize: d.iconMedium)),
+                          SizedBox(width: d.spaceSmall),
+                          Flexible(
+                            child: MyText(
+                              languageService.translate('language'),
+                              fontSize: d.title,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.textPrimary,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Spacer(),
                     SizedBox(width: d.backButtonSize),
                   ],
                 ),
@@ -337,7 +366,11 @@ class LanguageSelectorScreen extends StatelessWidget {
 
               Expanded(
                 child: ListView.separated(
-                  padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: d.paddingScreen,
+                    vertical: d.spaceMedium,
+                  ),
                   itemCount: languageService.availableLanguages.length,
                   separatorBuilder: (_, __) => SizedBox(height: d.spaceMedium),
                   itemBuilder: (context, index) {
@@ -358,19 +391,24 @@ class LanguageSelectorScreen extends StatelessWidget {
                             style: TextStyle(fontSize: d.iconMedium),
                           ),
                           SizedBox(width: d.spaceMedium),
-                          MyText(
-                            language.name,
-                            fontSize: d.body,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                            color: AppColors.textPrimary,
+                          Expanded(
+                            child: MyText(
+                              language.name,
+                              fontSize: d.body,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              color: AppColors.textPrimary,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          const Spacer(),
-                          if (isSelected)
+                          if (isSelected) ...[
+                            SizedBox(width: d.spaceSmall),
                             Icon(
                               CupertinoIcons.check_mark_circled_solid,
                               color: CupertinoColors.activeBlue,
                               size: d.iconMedium,
                             ),
+                          ],
                         ],
                       ),
                     );
