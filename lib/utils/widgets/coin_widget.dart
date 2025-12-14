@@ -1,88 +1,80 @@
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/utils/values/game_constants.dart';
+import '../const_widgets/my_text.dart';
+import '../services/audio/audio_manager.dart';
+import '../ui/colors.dart';
+import '../ui/dimensions.dart';
 
 class CoinWidget extends StatelessWidget {
   final int coins;
   final int maxCoins;
+  final VoidCallback? onAddPressed;
 
   const CoinWidget({
     super.key,
     this.coins = 0,
     this.maxCoins = 7777777,
+    this.onAddPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
+    final d = Dimensions(context);
     final coinText = coins.clamp(0, maxCoins).toString();
 
-    return IntrinsicWidth(
-      child: Container(
-        height: w * 0.1,
-        padding: EdgeInsets.symmetric(horizontal: w * 0.02),
-        decoration: BoxDecoration(
-          gradient: GameConstants.coinGradient.withOpacity(0.7),
-          borderRadius: BorderRadius.circular(w * 0.03),
-          boxShadow: [
-            BoxShadow(
-              color: CupertinoColors.systemYellow.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+    return Container(
+      height: d.backButtonSize,
+      padding: EdgeInsets.symmetric(
+        horizontal: d.spaceMedium,
+        vertical: d.spaceSmall,
+      ),
+      decoration: BoxDecoration(
+        gradient: AppColors.coinGradient,
+        borderRadius: BorderRadius.circular(d.radiusMedium),
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '🪙',
-                  style: TextStyle(fontSize: w * 0.05),
-                ),
-                SizedBox(width: w * 0.015),
-                Text(
-                  coinText,
-                  style: TextStyle(
-                    color: CupertinoColors.white,
-                    fontSize: w * 0.038,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-
-            SizedBox(width: w * 0.02),
-
-            CupertinoButton(
-              padding: EdgeInsets.zero,
-              minSize: 0,
-              onPressed: () {
-                // Coin sotib olish
-              },
-              child: Container(
-                width: w * 0.06,
-                height: w * 0.06,
-                decoration: BoxDecoration(
-                  color: CupertinoColors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(w * 0.018),
-                  border: Border.all(
-                    color: CupertinoColors.white.withOpacity(0.4),
-                    width: 1.5,
-                  ),
-                ),
-                child: Icon(
-                  CupertinoIcons.add,
-                  color: CupertinoColors.white,
-                  size: w * 0.04,
+        boxShadow: AppColors.coinShadow,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '🪙',
+            style: TextStyle(fontSize: d.iconSmall),
+          ),
+          SizedBox(width: d.spaceSmall),
+          MyText(
+            coinText,
+            fontSize: d.bodySmall,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          SizedBox(width: d.spaceMedium),
+          GestureDetector(
+            onTap: () {
+              AudioManager().playButtonClick();
+              onAddPressed?.call();
+            },
+            child: Container(
+              width: d.iconMedium,
+              height: d.iconMedium,
+              decoration: BoxDecoration(
+                color: CupertinoColors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(d.radiusSmall),
+                border: Border.all(
+                  color: CupertinoColors.white.withOpacity(0.4),
+                  width: d.borderMedium,
                 ),
               ),
+              child: Icon(
+                CupertinoIcons.add,
+                color: AppColors.textPrimary,
+                size: d.iconSmall,
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -1,10 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'dart:math' as math;
 import 'dart:ui';
+import '../ui/colors.dart';
 
 class GlassBubblesBackground extends StatefulWidget {
   final Widget child;
-  const GlassBubblesBackground({super.key, required this.child});
+
+  const GlassBubblesBackground({
+    super.key,
+    required this.child,
+  });
 
   @override
   State<GlassBubblesBackground> createState() => _GlassBubblesBackgroundState();
@@ -26,15 +31,19 @@ class _GlassBubblesBackgroundState extends State<GlassBubblesBackground>
       duration: const Duration(hours: 1),
     )..repeat();
 
+    _initBubbles();
+  }
+
+  void _initBubbles() {
     final random = math.Random();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 8; i++) {
       bubbles.add(GlassBubble(
         x: random.nextDouble(),
         y: random.nextDouble(),
-        size: 70 + random.nextDouble() * 110,
-        speedX: (-50 + random.nextDouble() * 100),
-        speedY: (-50 + random.nextDouble() * 100),
-        rotationSpeed: -0.5 + random.nextDouble() * 1.0,
+        size: 60 + random.nextDouble() * 100,
+        speedX: (-40 + random.nextDouble() * 80),
+        speedY: (-40 + random.nextDouble() * 80),
+        rotationSpeed: -0.3 + random.nextDouble() * 0.6,
         rotation: random.nextDouble() * math.pi * 2,
       ));
     }
@@ -86,17 +95,10 @@ class _GlassBubblesBackgroundState extends State<GlassBubblesBackground>
               width: size.width,
               height: size.height,
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF667EEA),
-                    Color(0xFF764BA2),
-                    Color(0xFFF093FB),
-                  ],
-                ),
+                gradient: AppColors.mainGradient,
               ),
             ),
+
             ...bubbles.map((bubble) {
               final xPos = bubble.x * size.width;
               final yPos = bubble.y * size.height;
@@ -114,10 +116,10 @@ class _GlassBubblesBackgroundState extends State<GlassBubblesBackground>
                         center: const Alignment(-0.3, -0.4),
                         radius: 1.2,
                         colors: [
-                          CupertinoColors.white.withValues(alpha: 0.5),
-                          CupertinoColors.white.withValues(alpha: 0.3),
-                          CupertinoColors.white.withValues(alpha: 0.1),
-                          CupertinoColors.white.withValues(alpha: 0.05),
+                          CupertinoColors.white.withOpacity(0.5),
+                          CupertinoColors.white.withOpacity(0.3),
+                          CupertinoColors.white.withOpacity(0.1),
+                          CupertinoColors.white.withOpacity(0.05),
                         ],
                         stops: const [0.0, 0.3, 0.7, 1.0],
                       ),
@@ -126,12 +128,13 @@ class _GlassBubblesBackgroundState extends State<GlassBubblesBackground>
                 ),
               );
             }),
+
             Positioned.fill(
               child: ClipRRect(
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                   child: Container(
-                    color: CupertinoColors.white.withValues(alpha: 0.05),
+                    color: CupertinoColors.white.withOpacity(0.05),
                   ),
                 ),
               ),

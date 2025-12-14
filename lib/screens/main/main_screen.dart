@@ -1,8 +1,12 @@
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/utils/const_widgets/my_text.dart';
-import 'package:snake_rush/utils/widgets/coin_widget.dart';
+import '../../utils/const_widgets/my_text.dart';
+import '../../utils/widgets/coin_widget.dart';
+import '../../utils/widgets/my_button.dart';
 import '../../utils/const_widgets/game_background.dart';
-import '../../utils/widgets/morph_navigator.dart';
+import '../../utils/navigator/morph_navigator.dart';
+import '../../utils/services/language/language_service.dart';
+import '../../utils/ui/colors.dart';
+import '../../utils/ui/dimensions.dart';
 import '../settings/settings_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -14,128 +18,169 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey _settingsKey = GlobalKey();
+  final _languageService = LanguageService();
+
+  @override
+  void initState() {
+    super.initState();
+    _languageService.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    _languageService.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    setState(() {});
+  }
 
   void _openSettings() {
     MorphNavigator.open(
       context: context,
       sourceKey: _settingsKey,
-      builder: (animation, position, size) {
-        return SettingsScreen(
-          animation: animation,
-          startPosition: position,
-          startSize: size,
-        );
-      },
+      child: const SettingsScreen(),
     );
   }
 
+  String _tr(String key) => _languageService.translate(key);
+
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final h = MediaQuery.of(context).size.height;
+    final d = Dimensions(context);
+    final screenHeight = MediaQuery.of(context).size.height;
+    final safeTop = MediaQuery.of(context).padding.top;
+    final safeBottom = MediaQuery.of(context).padding.bottom;
+    final availableHeight = screenHeight - safeTop - safeBottom;
 
     return CupertinoPageScaffold(
       child: GlassBubblesBackground(
         child: SafeArea(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-            child: Column(
-              children: [
-                SizedBox(height: w * 0.04),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                    maxWidth: d.maxContentWidth,
+                  ),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: d.paddingScreen,
+                        vertical: d.spaceMedium,
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              MyButton(
+                                key: _settingsKey,
+                                type: ButtonType.icon,
+                                onPressed: _openSettings,
+                                child: Text(
+                                  '⚙️',
+                                  style: TextStyle(fontSize: d.iconMedium),
+                                ),
+                              ),
+                              const CoinWidget(coins: 7),
+                            ],
+                          ),
 
-                /// TOP BAR
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CupertinoButton(
-                      key: _settingsKey,
-                      padding: EdgeInsets.zero,
-                      minSize: 0,
-                      onPressed: _openSettings,
-                      child: const Text(
-                        '⚙️',
-                        style: TextStyle(fontSize: 22),
+                          SizedBox(height: availableHeight * 0.1),
+
+                          Text(
+                            '🐍',
+                            style: TextStyle(fontSize: d.iconHuge),
+                          ),
+
+                          const Spacer(),
+
+                          MyButton(
+                            type: ButtonType.primary,
+                            text: _tr('play'),
+                            icon: CupertinoIcons.play_fill,
+                            onPressed: () {},
+                          ),
+
+                          SizedBox(height: d.spaceLarge),
+
+                          Row(
+                            children: [
+                              _buildSmallButton('🛒', _tr('shop'), d),
+                              SizedBox(width: d.spaceMedium),
+                              _buildSmallButton('🏆', _tr('top'), d),
+                              SizedBox(width: d.spaceMedium),
+                              _buildSmallButton('👤', _tr('me'), d),
+                            ],
+                          ),
+
+                          const Spacer(),
+
+                          MyButton(
+                            type: ButtonType.glass,
+                            width: double.infinity,
+                            height: d.cardHeight,
+                            onPressed: () {},
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('🎁', style: TextStyle(fontSize: d.iconMedium)),
+                                SizedBox(width: d.spaceMedium),
+                                Flexible(
+                                  child: MyText(
+                                    _tr('daily_reward'),
+                                    fontSize: d.bodySmall,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: d.spaceMedium),
+                        ],
                       ),
                     ),
-                    const CoinWidget(coins: 7),
-                  ],
-                ),
-
-                SizedBox(height: h * 0.08),
-
-                Center(
-                  child: MyText('🐍', fontSize: 60),
-                ),
-
-                const Spacer(),
-
-                /// PLAY BUTTON
-                Container(
-                  width: w * 0.7,
-                  height: w * 0.16,
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(w * 0.035),
-                  ),
-                  child: Center(
-                    child: MyText(
-                      'Play',
-                      fontSize: 22,
-                      color: CupertinoColors.white,
-                    ),
                   ),
                 ),
-
-                SizedBox(height: h * 0.03),
-
-                /// SECONDARY BUTTONS
-                Row(
-                  children: [
-                    _smallButton('🛒', 'SHOP', w),
-                    SizedBox(width: w * 0.03),
-                    _smallButton('🏆', 'TOP', w),
-                    SizedBox(width: w * 0.03),
-                    _smallButton('👤', 'ME', w),
-                  ],
-                ),
-
-                const Spacer(),
-
-                /// BOTTOM PANEL
-                Container(
-                  width: w * 0.88,
-                  height: w * 0.18,
-                  decoration: BoxDecoration(
-                    color: CupertinoColors.white.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(w * 0.04),
-                  ),
-                  child: const Center(
-                    child: Text('🎁 DAILY REWARD / NEWS'),
-                  ),
-                ),
-
-                SizedBox(height: h * 0.02),
-              ],
-            ),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _smallButton(String emoji, String title, double w) {
+  Widget _buildSmallButton(String emoji, String title, Dimensions d) {
     return Expanded(
-      child: Container(
-        height: w * 0.14,
-        decoration: BoxDecoration(
-          color: CupertinoColors.white.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(w * 0.035),
-        ),
-        child: Center(
-          child: Text(
-            '$emoji $title',
-            style: const TextStyle(fontSize: 12),
-          ),
+      child: MyButton(
+        type: ButtonType.glass,
+        height: d.cardHeightSmall,
+        onPressed: () {},
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: TextStyle(fontSize: d.iconMedium)),
+            SizedBox(height: d.spaceTiny),
+            Flexible(
+              child: MyText(
+                title,
+                fontSize: d.caption,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );

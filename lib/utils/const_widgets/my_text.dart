@@ -8,6 +8,11 @@ class MyText extends StatelessWidget {
   final TextAlign? textAlign;
   final int? maxLines;
   final TextOverflow? overflow;
+  final bool bold;
+  final FontWeight? fontWeight;
+  final double? height;
+  final double? letterSpacing;
+  final TextDecoration? decoration;
 
   const MyText(
       this.content, {
@@ -17,6 +22,11 @@ class MyText extends StatelessWidget {
         this.textAlign,
         this.maxLines,
         this.overflow,
+        this.bold = false,
+        this.fontWeight,
+        this.height,
+        this.letterSpacing,
+        this.decoration,
       });
 
   @override
@@ -28,9 +38,11 @@ class MyText extends StatelessWidget {
       overflow: overflow,
       style: GoogleFonts.inter(
         fontSize: fontSize ?? 16,
-        fontWeight: FontWeight.w400,
+        fontWeight: fontWeight ?? (bold ? FontWeight.bold : FontWeight.w400),
         color: color ?? CupertinoColors.label,
-        height: 1.25,
+        height: height ?? 1.25,
+        letterSpacing: letterSpacing,
+        decoration: decoration,
       ),
     );
   }

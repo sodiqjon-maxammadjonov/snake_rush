@@ -1,157 +1,191 @@
 import 'package:flutter/cupertino.dart';
-import 'dart:ui';
-import 'package:snake_rush/utils/const_widgets/my_text.dart';
-import '../../utils/widgets/morph_page.dart';
+import '../../utils/const_widgets/my_text.dart';
+import '../../utils/widgets/my_button.dart';
+import '../../utils/navigator/morph_navigator.dart';
+import '../../utils/services/audio/audio_manager.dart';
+import '../../utils/services/language/language_service.dart';
+import '../../utils/ui/colors.dart';
+import '../../utils/ui/dimensions.dart';
+import '../leaderboard/leaderboard_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
-  final Animation<double> animation;
-  final Offset startPosition;
-  final Size startSize;
-
-  const SettingsScreen({
-    super.key,
-    required this.animation,
-    required this.startPosition,
-    required this.startSize,
-  });
+  const SettingsScreen({super.key});
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  double _gameVolume = 0.7;
-  double _musicVolume = 0.5;
+  final GlobalKey _leaderboardKey = GlobalKey();
+  final GlobalKey _languageKey = GlobalKey();
+  final _audioManager = AudioManager();
+  final _languageService = LanguageService();
+
+  late double _gameVolume;
+  late double _musicVolume;
+
+  @override
+  void initState() {
+    super.initState();
+    _gameVolume = _audioManager.gameVolume;
+    _musicVolume = _audioManager.musicVolume;
+    _languageService.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    _languageService.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    setState(() {});
+  }
+
+  void _openLeaderboard() {
+    MorphNavigator.open(
+      context: context,
+      sourceKey: _leaderboardKey,
+      child: const LeaderBoardScreen(),
+    );
+  }
+
+  void _openLanguageSelector() {
+    MorphNavigator.open(
+      context: context,
+      sourceKey: _languageKey,
+      child: const LanguageSelectorScreen(),
+    );
+  }
+
+  String _tr(String key) => _languageService.translate(key);
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
+    final d = Dimensions(context);
 
     return SafeArea(
-      child: Column(
-        children: [
-          // Header
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: AnimatedBuilder(
-              animation: widget.animation,
-              builder: (context, child) {
-                final t = Curves.easeInOutCubic.transform(widget.animation.value);
-                final headerEmojiOpacity = t > 0.7 ? ((t - 0.7) / 0.3).clamp(0.0, 1.0) : 0.0;
-
-                return Stack(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: d.maxContentWidth),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(d.space),
+                child: Row(
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: CupertinoButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Icon(CupertinoIcons.back, size: 28),
-                      ),
+                    MyButton(
+                      type: ButtonType.icon,
+                      icon: CupertinoIcons.back,
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
-                    Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Opacity(
-                            opacity: headerEmojiOpacity,
-                            child: Text('⚙️', style: TextStyle(fontSize: 24)),
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Settings',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+                    const Spacer(),
+                    Text('⚙️', style: TextStyle(fontSize: d.iconMedium)),
+                    SizedBox(width: d.spaceSmall),
+                    MyText(
+                      _tr('settings'),
+                      fontSize: d.title,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
                     ),
-                  ],
-                );
-              },
-            ),
-          ),
-
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: w * 0.06),
-                child: Column(
-                  children: [
-                    SizedBox(height: 20),
-
-                    // Game Volume Control
-                    _buildVolumeControl(
-                      icon: '🎮',
-                      title: 'Game Sound',
-                      volume: _gameVolume,
-                      onChanged: (value) {
-                        setState(() {
-                          _gameVolume = value;
-                        });
-                      },
-                    ),
-
-                    SizedBox(height: 16),
-
-                    // Music Volume Control
-                    _buildVolumeControl(
-                      icon: '🎵',
-                      title: 'Music',
-                      volume: _musicVolume,
-                      onChanged: (value) {
-                        setState(() {
-                          _musicVolume = value;
-                        });
-                      },
-                    ),
-
-                    SizedBox(height: 30),
-
-                    // Additional game options
-                    _buildGameOption(
-                      icon: '🏆',
-                      title: 'Leaderboard',
-                      onTap: () {},
-                    ),
-
-                    SizedBox(height: 12),
-
-                    _buildGameOption(
-                      icon: '❓',
-                      title: 'How to Play',
-                      onTap: () {},
-                    ),
-
-                    SizedBox(height: 12),
-
-                    _buildGameOption(
-                      icon: '📱',
-                      title: 'Share Game',
-                      onTap: () {},
-                    ),
-
-                    SizedBox(height: 30),
-
-                    // Version info
-                    Text(
-                      'Snake Rush v1.0',
-                      style: TextStyle(
-                        color: CupertinoColors.systemGrey,
-                        fontSize: 12,
-                      ),
-                    ),
-
-                    SizedBox(height: 20),
+                    const Spacer(),
+                    SizedBox(width: d.backButtonSize),
                   ],
                 ),
               ),
-            ),
-          ],
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                  child: Column(
+                    children: [
+                      SizedBox(height: d.spaceLarge),
+
+                      _buildVolumeControl(
+                        d: d,
+                        icon: '🎮',
+                        title: _tr('game_sound'),
+                        volume: _gameVolume,
+                        onChanged: (value) {
+                          setState(() => _gameVolume = value);
+                          _audioManager.setGameVolume(value);
+                        },
+                      ),
+
+                      SizedBox(height: d.space),
+
+                      _buildVolumeControl(
+                        d: d,
+                        icon: '🎵',
+                        title: _tr('music'),
+                        volume: _musicVolume,
+                        onChanged: (value) {
+                          setState(() => _musicVolume = value);
+                          _audioManager.setMusicVolume(value);
+                        },
+                      ),
+
+                      SizedBox(height: d.spaceXLarge),
+
+                      _buildGameOption(
+                        d: d,
+                        key: _leaderboardKey,
+                        icon: '🏆',
+                        title: _tr('leaderboard'),
+                        onTap: _openLeaderboard,
+                      ),
+
+                      SizedBox(height: d.spaceMedium),
+
+                      _buildGameOption(
+                        d: d,
+                        icon: '❓',
+                        title: _tr('how_to_play'),
+                        onTap: () {},
+                      ),
+
+                      SizedBox(height: d.spaceMedium),
+
+                      _buildGameOption(
+                        d: d,
+                        icon: '📱',
+                        title: _tr('share_game'),
+                        onTap: () {},
+                      ),
+
+                      SizedBox(height: d.spaceMedium),
+
+                      _buildGameOption(
+                        d: d,
+                        key: _languageKey,
+                        icon: _languageService.flag,
+                        title: _tr('language'),
+                        subtitle: _languageService.name,
+                        onTap: _openLanguageSelector,
+                      ),
+
+                      SizedBox(height: d.spaceXLarge),
+
+                      MyText(
+                        'Snake Rush v1.0',
+                        fontSize: d.caption,
+                        color: AppColors.textMuted,
+                      ),
+
+                      SizedBox(height: d.spaceLarge),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
     );
   }
 
   Widget _buildVolumeControl({
+    required Dimensions d,
     required String icon,
     required String title,
     required double volume,
@@ -159,34 +193,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: CupertinoColors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.glassLight,
+        borderRadius: BorderRadius.circular(d.radius),
         border: Border.all(
-          color: CupertinoColors.white.withOpacity(0.1),
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
         ),
       ),
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(d.paddingCard),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              MyText(icon, fontSize: 24),
-              SizedBox(width: 12),
-              MyText(title, fontSize: 18),
-              Spacer(),
+              Text(icon, style: TextStyle(fontSize: d.iconMedium)),
+              SizedBox(width: d.spaceMedium),
+              MyText(
+                title,
+                fontSize: d.body,
+                color: AppColors.textPrimary,
+              ),
+              const Spacer(),
               MyText(
                 '${(volume * 100).toInt()}%',
-                fontSize: 16,
+                fontSize: d.body,
                 color: CupertinoColors.activeBlue,
+                fontWeight: FontWeight.w600,
               ),
             ],
           ),
-          SizedBox(height: 12),
+          SizedBox(height: d.spaceMedium),
           Row(
             children: [
-              MyText(volume == 0 ? '🔇' : '🔉', fontSize: 16),
-              SizedBox(width: 8),
+              Text(
+                volume == 0 ? '🔇' : '🔉',
+                style: TextStyle(fontSize: d.iconSmall),
+              ),
+              SizedBox(width: d.spaceSmall),
               Expanded(
                 child: CupertinoSlider(
                   value: volume,
@@ -196,8 +239,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: onChanged,
                 ),
               ),
-              SizedBox(width: 8),
-              MyText('🔊', fontSize: 16),
+              SizedBox(width: d.spaceSmall),
+              Text('🔊', style: TextStyle(fontSize: d.iconSmall)),
             ],
           ),
         ],
@@ -206,44 +249,136 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildGameOption({
+    required Dimensions d,
     required String icon,
     required String title,
+    String? subtitle,
     required VoidCallback onTap,
+    Key? key,
   }) {
-    return CupertinoButton(
-      padding: EdgeInsets.zero,
+    return MyButton(
+      key: key,
+      type: ButtonType.secondary,
+      width: double.infinity,
       onPressed: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: CupertinoColors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: CupertinoColors.white.withOpacity(0.1),
+      child: Row(
+        children: [
+          Text(icon, style: TextStyle(fontSize: d.iconMedium)),
+          SizedBox(width: d.spaceMedium),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                MyText(
+                  title,
+                  fontSize: d.body,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+                if (subtitle != null) ...[
+                  SizedBox(height: d.spaceTiny),
+                  MyText(
+                    subtitle,
+                    fontSize: d.caption,
+                    color: AppColors.textSecondary,
+                  ),
+                ],
+              ],
+            ),
           ),
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Text(
-              icon,
-              style: TextStyle(fontSize: 22),
-            ),
-            SizedBox(width: 12),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: CupertinoColors.label,
+          Icon(
+            CupertinoIcons.chevron_right,
+            size: d.iconSmall,
+            color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class LanguageSelectorScreen extends StatelessWidget {
+  const LanguageSelectorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final d = Dimensions(context);
+    final languageService = LanguageService();
+
+    return SafeArea(
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: d.maxContentWidth),
+          child: Column(
+            children: [
+              Padding(
+                padding: EdgeInsets.all(d.space),
+                child: Row(
+                  children: [
+                    MyButton(
+                      type: ButtonType.icon,
+                      icon: CupertinoIcons.back,
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const Spacer(),
+                    Text('🌐', style: TextStyle(fontSize: d.iconMedium)),
+                    SizedBox(width: d.spaceSmall),
+                    MyText(
+                      languageService.translate('language'),
+                      fontSize: d.title,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    const Spacer(),
+                    SizedBox(width: d.backButtonSize),
+                  ],
+                ),
               ),
-            ),
-            Spacer(),
-            Icon(
-              CupertinoIcons.chevron_right,
-              size: 20,
-              color: CupertinoColors.systemGrey,
-            ),
-          ],
+
+              Expanded(
+                child: ListView.separated(
+                  padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                  itemCount: languageService.availableLanguages.length,
+                  separatorBuilder: (_, __) => SizedBox(height: d.spaceMedium),
+                  itemBuilder: (context, index) {
+                    final language = languageService.availableLanguages[index];
+                    final isSelected = language.code == languageService.currentLanguage;
+
+                    return MyButton(
+                      type: ButtonType.glass,
+                      width: double.infinity,
+                      onPressed: () {
+                        languageService.setLanguage(language.code);
+                        Navigator.of(context).pop();
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            language.flag,
+                            style: TextStyle(fontSize: d.iconMedium),
+                          ),
+                          SizedBox(width: d.spaceMedium),
+                          MyText(
+                            language.name,
+                            fontSize: d.body,
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            color: AppColors.textPrimary,
+                          ),
+                          const Spacer(),
+                          if (isSelected)
+                            Icon(
+                              CupertinoIcons.check_mark_circled_solid,
+                              color: CupertinoColors.activeBlue,
+                              size: d.iconMedium,
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

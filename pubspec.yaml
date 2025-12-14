@@ -30,5 +30,6 @@ flutter:
 
   assets:
      - assets/images/
-     - assets/sounds/
+     - assets/audio/music/
+     - assets/audio/sounds/
 
