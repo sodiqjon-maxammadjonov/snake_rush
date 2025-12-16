@@ -1,43 +1,72 @@
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/utils/services/audio/audio_manager.dart';
+import '../services/audio/audio_manager.dart';
+import '../services/service_locator.dart';
 import '../ui/colors.dart';
 import '../ui/dimensions.dart';
 
-class BackButton extends StatefulWidget {
-  final VoidCallback? onPressed;
-  final Color? backgroundColor;
-  final Color? iconColor;
-  final bool useEmoji;
+enum ButtonType { primary, secondary, glass, icon }
 
-  const BackButton({
+class MyButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final String? text;
+  final Widget? child;
+  final ButtonType type;
+  final double? width;
+  final double? height;
+  final Color? backgroundColor;
+  final Color? textColor;
+  final IconData? icon;
+  final bool playSound;
+  final EdgeInsets? padding;
+  final BorderRadius? borderRadius;
+
+  const MyButton({
     super.key,
     this.onPressed,
+    this.text,
+    this.child,
+    this.type = ButtonType.primary,
+    this.width,
+    this.height,
     this.backgroundColor,
-    this.iconColor,
-    this.useEmoji = true,
+    this.textColor,
+    this.icon,
+    this.playSound = true,
+    this.padding,
+    this.borderRadius,
   });
 
   @override
-  State<BackButton> createState() => _BackButtonState();
+  State<MyButton> createState() => _MyButtonState();
 }
 
-class _BackButtonState extends State<BackButton>
+class _MyButtonState extends State<MyButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final AudioManager _audioManager; // CACHE singleton
   bool _isPressed = false;
-  final _audioManager = AudioManager();
 
   @override
   void initState() {
     super.initState();
+
+    // Cache singleton instance
+    _audioManager = getIt<AudioManager>();
+
     _controller = AnimationController(
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
     );
   }
 
@@ -48,34 +77,35 @@ class _BackButtonState extends State<BackButton>
   }
 
   void _handleTapDown(TapDownDetails details) {
+    if (!mounted || widget.onPressed == null) return;
     setState(() => _isPressed = true);
     _controller.forward();
   }
 
   void _handleTapUp(TapUpDetails details) {
+    if (!mounted) return;
     setState(() => _isPressed = false);
     _controller.reverse();
   }
 
   void _handleTapCancel() {
+    if (!mounted) return;
     setState(() => _isPressed = false);
     _controller.reverse();
   }
 
   void _handleTap() {
-    _audioManager.playButtonClick();
-    if (widget.onPressed != null) {
-      widget.onPressed!();
-    } else {
-      Navigator.of(context).pop();
+    if (widget.onPressed == null) return;
+
+    if (widget.playSound) {
+      _audioManager.playButtonClick(); // Use cached instance
     }
+    widget.onPressed!();
   }
 
   @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
-    final bgColor = widget.backgroundColor ?? AppColors.glassLight;
-    final iColor = widget.iconColor ?? AppColors.textPrimary;
 
     return GestureDetector(
       onTapDown: _handleTapDown,
@@ -84,36 +114,158 @@ class _BackButtonState extends State<BackButton>
       onTap: _handleTap,
       child: ScaleTransition(
         scale: _scaleAnimation,
-        child: Container(
-          width: d.backButtonSize,
-          height: d.backButtonSize,
-          decoration: BoxDecoration(
-            color: _isPressed ? bgColor.withOpacity(0.5) : bgColor,
-            borderRadius: BorderRadius.circular(d.radiusMedium),
-            border: Border.all(
-              color: AppColors.glassBorder,
-              width: d.borderMedium,
-            ),
-            boxShadow: AppColors.cardShadow,
-          ),
-          child: Center(
-            child: widget.useEmoji
-                ? Text(
-              '←',
-              style: TextStyle(
-                fontSize: d.iconMedium,
-                fontWeight: FontWeight.bold,
-                color: iColor,
-              ),
-            )
-                : Icon(
-              CupertinoIcons.back,
-              size: d.iconMedium,
-              color: iColor,
-            ),
-          ),
-        ),
+        child: _buildButtonByType(d),
       ),
     );
+  }
+
+  Widget _buildButtonByType(Dimensions d) {
+    switch (widget.type) {
+      case ButtonType.primary:
+        return _buildPrimaryButton(d);
+      case ButtonType.secondary:
+        return _buildSecondaryButton(d);
+      case ButtonType.glass:
+        return _buildGlassButton(d);
+      case ButtonType.icon:
+        return _buildIconButton(d);
+    }
+  }
+
+  Widget _buildPrimaryButton(Dimensions d) {
+    return Container(
+      width: widget.width ?? d.buttonWidth,
+      height: widget.height ?? d.buttonHeight,
+      padding: widget.padding,
+      decoration: BoxDecoration(
+        gradient: widget.backgroundColor != null
+            ? null
+            : AppColors.playButtonGradient,
+        color: widget.backgroundColor,
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(d.radiusLarge),
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
+        ),
+        boxShadow: AppColors.buttonShadow,
+      ),
+      child: _buildButtonContent(d),
+    );
+  }
+
+  Widget _buildSecondaryButton(Dimensions d) {
+    return Container(
+      width: widget.width,
+      height: widget.height ?? d.buttonHeightSmall,
+      padding: widget.padding ??
+          EdgeInsets.symmetric(
+            horizontal: d.paddingCard,
+            vertical: d.paddingButton,
+          ),
+      decoration: BoxDecoration(
+        color: widget.backgroundColor ?? AppColors.glassLight,
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(d.radiusMedium),
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
+        ),
+      ),
+      child: _buildButtonContent(d),
+    );
+  }
+
+  Widget _buildGlassButton(Dimensions d) {
+    return Container(
+      width: widget.width,
+      height: widget.height ?? d.cardHeightSmall,
+      padding: widget.padding ?? EdgeInsets.all(d.paddingCard),
+      decoration: BoxDecoration(
+        color: _isPressed
+            ? AppColors.glassLight.withOpacity(0.5)
+            : AppColors.glassLight,
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(d.radiusMedium),
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
+        ),
+      ),
+      child: _buildButtonContent(d),
+    );
+  }
+
+  Widget _buildIconButton(Dimensions d) {
+    return Container(
+      width: widget.width ?? d.backButtonSize,
+      height: widget.height ?? d.backButtonSize,
+      decoration: BoxDecoration(
+        color: _isPressed
+            ? (widget.backgroundColor ?? AppColors.glassLight).withOpacity(0.5)
+            : widget.backgroundColor ?? AppColors.glassLight,
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(d.radiusMedium),
+        border: Border.all(
+          color: AppColors.glassBorder,
+          width: d.borderMedium,
+        ),
+        boxShadow: AppColors.cardShadow,
+      ),
+      child: Center(child: widget.child),
+    );
+  }
+
+  Widget _buildButtonContent(Dimensions d) {
+    if (widget.child != null) {
+      return Center(child: widget.child);
+    }
+
+    final hasIcon = widget.icon != null;
+    final hasText = widget.text != null;
+
+    if (hasIcon && hasText) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            widget.icon,
+            color: widget.textColor ?? AppColors.textPrimary,
+            size: d.iconMedium,
+          ),
+          SizedBox(width: d.spaceMedium),
+          Flexible(
+            child: Text(
+              widget.text!,
+              style: TextStyle(
+                fontSize: d.button,
+                fontWeight: FontWeight.bold,
+                color: widget.textColor ?? AppColors.textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (hasIcon) {
+      return Icon(
+        widget.icon,
+        color: widget.textColor ?? AppColors.textPrimary,
+        size: d.iconMedium,
+      );
+    }
+
+    if (hasText) {
+      return Text(
+        widget.text!,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: d.button,
+          fontWeight: FontWeight.bold,
+          color: widget.textColor ?? AppColors.textPrimary,
+        ),
+        overflow: TextOverflow.ellipsis,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }

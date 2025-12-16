@@ -19,7 +19,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey _settingsKey = GlobalKey();
-  final GlobalKey _shopKey = GlobalKey();
+  final GlobalKey _coinShopKey = GlobalKey();
   final _languageService = LanguageService();
 
   @override
@@ -46,10 +46,12 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  void _openShop(){
+  void _openShop(){}
+
+  void _openCoinShop(){
     MorphNavigator.open(
         context: context,
-        sourceKey: _shopKey,
+        sourceKey: _coinShopKey,
         child: const ShopScreen()
     );
   }
@@ -84,7 +86,7 @@ class _MainScreenState extends State<MainScreen> {
                             style: TextStyle(fontSize: d.iconMedium),
                           ),
                         ),
-                        const CoinWidget(onAddPressed: null),
+                        CoinWidget(onAddPressed: _openCoinShop, key: _coinShopKey),
                       ],
                     ),
 
@@ -108,7 +110,7 @@ class _MainScreenState extends State<MainScreen> {
 
                     Row(
                       children: [
-                        _buildSmallButton('🛒', _tr('shop'), d, onPressed: _openShop, key: _shopKey),
+                        _buildSmallButton('🛒', _tr('shop'), d, onPressed: _openShop),
                         SizedBox(width: d.spaceMedium),
                         _buildSmallButton('🏆', _tr('top'), d),
                         SizedBox(width: d.spaceMedium),

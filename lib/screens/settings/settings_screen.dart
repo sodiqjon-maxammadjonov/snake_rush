@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import '../../utils/const_widgets/my_text.dart';
 import '../../utils/widgets/my_button.dart';
 import '../../utils/navigator/morph_navigator.dart';
+import '../../utils/services/service_locator.dart';
 import '../../utils/services/audio/audio_manager.dart';
 import '../../utils/services/language/language_service.dart';
 import '../../utils/ui/colors.dart';
@@ -18,8 +19,9 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final GlobalKey _leaderboardKey = GlobalKey();
   final GlobalKey _languageKey = GlobalKey();
-  final _audioManager = AudioManager();
-  final _languageService = LanguageService();
+
+  late final AudioManager _audioManager;
+  late final LanguageService _languageService;
 
   late double _gameVolume;
   late double _musicVolume;
@@ -27,8 +29,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    _audioManager = getIt<AudioManager>();
+    _languageService = getIt<LanguageService>();
+
     _gameVolume = _audioManager.gameVolume;
     _musicVolume = _audioManager.musicVolume;
+
     _languageService.addListener(_onLanguageChanged);
   }
 
@@ -63,9 +69,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
-    final navBarHeight =
-        CupertinoNavigationBar().preferredSize.height +
-            MediaQuery.of(context).padding.top;
+    final navBarHeight = CupertinoNavigationBar().preferredSize.height +
+        MediaQuery.of(context).padding.top;
+
     return CupertinoPageScaffold(
       backgroundColor: CupertinoColors.transparent,
       navigationBar: CupertinoNavigationBar(
@@ -79,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         middle: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('🪙', style: TextStyle(fontSize: d.iconMedium)),
+            Text('⚙️', style: TextStyle(fontSize: d.iconMedium)),
             SizedBox(width: d.spaceSmall),
             MyText(
               _tr('settings'),
@@ -90,97 +96,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ],
         ),
       ),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: d.maxContentWidth),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
-                physics: const BouncingScrollPhysics(),
-                children: [
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: d.maxContentWidth),
+          child: ListView(
+            padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+            physics: const BouncingScrollPhysics(),
+            children: [
+              SizedBox(height: navBarHeight + d.spaceLarge),
 
-                  SizedBox(height: navBarHeight),
-                  SizedBox(height: d.spaceLarge),
-
-                  _buildVolumeControl(
-                    d: d,
-                    icon: '🎮',
-                    title: _tr('game_sound'),
-                    volume: _gameVolume,
-                    onChanged: (value) {
-                      setState(() => _gameVolume = value);
-                      _audioManager.setGameVolume(value);
-                    },
-                  ),
-
-                  SizedBox(height: d.space),
-
-                  _buildVolumeControl(
-                    d: d,
-                    icon: '🎵',
-                    title: _tr('music'),
-                    volume: _musicVolume,
-                    onChanged: (value) {
-                      setState(() => _musicVolume = value);
-                      _audioManager.setMusicVolume(value);
-                    },
-                  ),
-
-                  SizedBox(height: d.spaceXLarge),
-
-                  _buildGameOption(
-                    d: d,
-                    key: _leaderboardKey,
-                    icon: '🏆',
-                    title: _tr('leaderboard'),
-                    onTap: _openLeaderboard,
-                  ),
-
-                  SizedBox(height: d.spaceMedium),
-
-                  _buildGameOption(
-                    d: d,
-                    icon: '❓',
-                    title: _tr('how_to_play'),
-                    onTap: () {},
-                  ),
-
-                  SizedBox(height: d.spaceMedium),
-
-                  _buildGameOption(
-                    d: d,
-                    icon: '📱',
-                    title: _tr('share_game'),
-                    onTap: () {},
-                  ),
-
-                  SizedBox(height: d.spaceMedium),
-
-                  _buildGameOption(
-                    d: d,
-                    key: _languageKey,
-                    icon: _languageService.flag,
-                    title: _tr('language'),
-                    subtitle: _languageService.name,
-                    onTap: _openLanguageSelector,
-                  ),
-
-                  SizedBox(height: d.spaceXLarge),
-
-                  Center(
-                    child: MyText(
-                      'Snake Rush v1.0',
-                      fontSize: d.caption,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-
-                  SizedBox(height: d.spaceLarge),
-                ],
+              _buildVolumeControl(
+                d: d,
+                icon: '🎮',
+                title: _tr('game_sound'),
+                volume: _gameVolume,
+                onChanged: (value) {
+                  setState(() => _gameVolume = value);
+                  _audioManager.setGameVolume(value);
+                },
               ),
-            ),
-          ],
+
+              SizedBox(height: d.space),
+
+              _buildVolumeControl(
+                d: d,
+                icon: '🎵',
+                title: _tr('music'),
+                volume: _musicVolume,
+                onChanged: (value) {
+                  setState(() => _musicVolume = value);
+                  _audioManager.setMusicVolume(value);
+                },
+              ),
+
+              SizedBox(height: d.spaceXLarge),
+
+              _buildGameOption(
+                d: d,
+                key: _leaderboardKey,
+                icon: '🏆',
+                title: _tr('leaderboard'),
+                onTap: _openLeaderboard,
+              ),
+
+              SizedBox(height: d.spaceMedium),
+
+              _buildGameOption(
+                d: d,
+                icon: '❓',
+                title: _tr('how_to_play'),
+                onTap: () {},
+              ),
+
+              SizedBox(height: d.spaceMedium),
+
+              _buildGameOption(
+                d: d,
+                icon: '📱',
+                title: _tr('share_game'),
+                onTap: () {},
+              ),
+
+              SizedBox(height: d.spaceMedium),
+
+              _buildGameOption(
+                d: d,
+                key: _languageKey,
+                icon: _languageService.flag,
+                title: _tr('language'),
+                subtitle: _languageService.name,
+                onTap: _openLanguageSelector,
+              ),
+
+              SizedBox(height: d.spaceXLarge),
+
+              Center(
+                child: MyText(
+                  'Snake Rush v1.0',
+                  fontSize: d.caption,
+                  color: AppColors.textMuted,
+                ),
+              ),
+
+              SizedBox(height: d.spaceLarge),
+            ],
+          ),
         ),
       ),
     );
@@ -272,7 +272,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Expanded(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
               children: [
                 MyText(
                   title,
@@ -283,7 +282,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (subtitle != null) ...[
-                  SizedBox(height: d.spaceTiny),
                   MyText(
                     '  : $subtitle',
                     fontSize: d.caption,
@@ -313,7 +311,7 @@ class LanguageSelectorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
-    final languageService = LanguageService();
+    final languageService = getIt<LanguageService>();
 
     return SafeArea(
       child: Center(
@@ -333,7 +331,6 @@ class LanguageSelectorScreen extends StatelessWidget {
                     Expanded(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text('🌐', style: TextStyle(fontSize: d.iconMedium)),
                           SizedBox(width: d.spaceSmall),
@@ -354,7 +351,6 @@ class LanguageSelectorScreen extends StatelessWidget {
                   ],
                 ),
               ),
-
               Expanded(
                 child: ListView.separated(
                   physics: const BouncingScrollPhysics(),

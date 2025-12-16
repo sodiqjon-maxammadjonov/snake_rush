@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import '../const_widgets/my_text.dart';
 import '../services/audio/audio_manager.dart';
+import '../services/service_locator.dart';
 import '../services/storage/storage_service.dart';
 import '../ui/colors.dart';
 import '../ui/dimensions.dart';
@@ -24,28 +25,42 @@ class CoinWidget extends StatefulWidget {
 }
 
 class _CoinWidgetState extends State<CoinWidget> {
-  final _storage = StorageService();
+  late final StorageService _storage;
+  late final AudioManager _audioManager;
   int _currentCoins = 0;
 
   @override
   void initState() {
     super.initState();
+    _storage = getIt<StorageService>();
+    _audioManager = getIt<AudioManager>();
     _loadCoins();
   }
 
-  Future<void> _loadCoins() async {
-    if (widget.coins != null) {
-      setState(() => _currentCoins = widget.coins!);
-    } else {
-      final coins = _storage.getInt('user_coins', 0);
+  void _loadCoins() {
+    final coins = widget.coins ?? _storage.getInt('user_coins', 0);
+    if (mounted) {
       setState(() => _currentCoins = coins);
     }
   }
 
   @override
+  void didUpdateWidget(CoinWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.coins != oldWidget.coins) {
+      _loadCoins();
+    }
+  }
+
+  void _handleAddPressed() {
+    _audioManager.playButtonClick();
+    widget.onAddPressed?.call();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
-    final coinText = _currentCoins.clamp(0, widget.maxCoins).toString();
+    final displayCoins = _currentCoins.clamp(0, widget.maxCoins);
 
     return Container(
       height: d.backButtonSize,
@@ -65,13 +80,10 @@ class _CoinWidgetState extends State<CoinWidget> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            '🪙',
-            style: TextStyle(fontSize: d.iconSmall),
-          ),
+          Text('🪙', style: TextStyle(fontSize: d.iconSmall)),
           SizedBox(width: d.spaceSmall),
           MyText(
-            coinText,
+            displayCoins.toString(),
             fontSize: d.bodySmall,
             fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
@@ -79,18 +91,15 @@ class _CoinWidgetState extends State<CoinWidget> {
           if (widget.showAddButton) ...[
             SizedBox(width: d.spaceMedium),
             GestureDetector(
-              onTap: () {
-                AudioManager().playButtonClick();
-                widget.onAddPressed?.call();
-              },
+              onTap: _handleAddPressed,
               child: Container(
                 width: d.iconMedium,
                 height: d.iconMedium,
                 decoration: BoxDecoration(
-                  color: CupertinoColors.white.withValues(alpha: 0.2),
+                  color: CupertinoColors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(d.radiusSmall),
                   border: Border.all(
-                    color: CupertinoColors.white.withValues(alpha: 0.4),
+                    color: CupertinoColors.white.withOpacity(0.4),
                     width: d.borderMedium,
                   ),
                 ),

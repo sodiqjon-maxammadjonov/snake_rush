@@ -68,7 +68,10 @@ class AudioManager {
   Future<void> playGameOverSound() => playSound('sounds/game_over.mp3');
   Future<void> playButtonClick() => playSound('sounds/button_click.mp3');
 
-  void dispose() {
-    FlameAudio.bgm.dispose();
+  Future<void> dispose() async {
+    await FlameAudio.bgm.stop();
+    await FlameAudio.bgm.dispose();
+    _isMusicPlaying = false;
   }
+
 }

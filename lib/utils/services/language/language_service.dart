@@ -1,22 +1,22 @@
 import 'package:flutter/cupertino.dart';
+import '../service_locator.dart';
 import '../storage/storage_service.dart';
 
 class LanguageService extends ChangeNotifier {
-  static final LanguageService _instance = LanguageService._internal();
-  factory LanguageService() => _instance;
-  LanguageService._internal();
-
-  final _storage = StorageService();
+  late final StorageService _storage;
   String _currentLanguage = 'en';
 
   String get currentLanguage => _currentLanguage;
 
   Future<void> init() async {
+    _storage = getIt<StorageService>();
     _currentLanguage = _storage.language;
     notifyListeners();
   }
 
   Future<void> setLanguage(String languageCode) async {
+    if (_currentLanguage == languageCode) return;
+
     _currentLanguage = languageCode;
     await _storage.setLanguage(languageCode);
     notifyListeners();
@@ -26,13 +26,8 @@ class LanguageService extends ChangeNotifier {
     return _translations[_currentLanguage]?[key] ?? key;
   }
 
-  String get flag {
-    return _languageFlags[_currentLanguage] ?? '🇬🇧';
-  }
-
-  String get name {
-    return _languageNames[_currentLanguage] ?? 'English';
-  }
+  String get flag => _languageFlags[_currentLanguage] ?? '🇬🇧';
+  String get name => _languageNames[_currentLanguage] ?? 'English';
 
   List<Language> get availableLanguages {
     return _languageNames.entries.map((entry) {

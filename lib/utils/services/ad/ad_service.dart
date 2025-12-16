@@ -9,7 +9,6 @@ class AdService {
   RewardedAd? _rewardedAd;
   bool _isLoadingAd = false;
 
-  // Test IDs - Production ga chiqarganda o'z ID laringizga almashtiring
   static const String _androidRewardedAdId = 'ca-app-pub-3940256099942544/5224354917';
   // static const String _androidRewardedAdId = 'ca-app-pub-2110406871216164/2968244345';
   static const String _iosRewardedAdId = 'ca-app-pub-3940256099942544/1712485313';
