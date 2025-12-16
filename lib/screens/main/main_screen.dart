@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import '../../utils/const_widgets/my_text.dart';
-import '../../utils/widgets/coin_widget.dart';
-import '../../utils/widgets/my_button.dart';
+import 'package:snake_rush/screens/shop/shop_screen.dart';
+import 'package:snake_rush/utils/const_widgets/my_text.dart';
+import 'package:snake_rush/utils/widgets/coin_widget.dart';
+import 'package:snake_rush/utils/widgets/my_button.dart';
 import '../../utils/const_widgets/game_background.dart';
 import '../../utils/navigator/morph_navigator.dart';
 import '../../utils/services/language/language_service.dart';
@@ -18,6 +19,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey _settingsKey = GlobalKey();
+  final GlobalKey _shopKey = GlobalKey();
   final _languageService = LanguageService();
 
   @override
@@ -33,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _onLanguageChanged() {
-    if (mounted) setState(() {});
+    setState(() {});
   }
 
   void _openSettings() {
@@ -41,6 +43,14 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       sourceKey: _settingsKey,
       child: const SettingsScreen(),
+    );
+  }
+
+  void _openShop(){
+    MorphNavigator.open(
+        context: context,
+        sourceKey: _shopKey,
+        child: const ShopScreen()
     );
   }
 
@@ -56,16 +66,13 @@ class _MainScreenState extends State<MainScreen> {
           child: Center(
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: d.maxContentWidth),
-              child: Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      d.paddingScreen,
-                      d.spaceMedium,
-                      d.paddingScreen,
-                      0,
-                    ),
-                    child: Row(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                child: Column(
+                  children: [
+                    SizedBox(height: d.spaceLarge),
+
+                    Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         MyButton(
@@ -77,77 +84,63 @@ class _MainScreenState extends State<MainScreen> {
                             style: TextStyle(fontSize: d.iconMedium),
                           ),
                         ),
-                        const CoinWidget(coins: 7),
+                        const CoinWidget(onAddPressed: null),
                       ],
                     ),
-                  ),
 
-                  Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    SizedBox(height: d.spaceHuge),
+
+                    Text(
+                      '🐍',
+                      style: TextStyle(fontSize: d.iconHuge),
+                    ),
+
+                    const Spacer(),
+
+                    MyButton(
+                      type: ButtonType.primary,
+                      text: _tr('play'),
+                      icon: CupertinoIcons.play_fill,
+                      onPressed: () {},
+                    ),
+
+                    SizedBox(height: d.spaceLarge),
+
+                    Row(
+                      children: [
+                        _buildSmallButton('🛒', _tr('shop'), d, onPressed: _openShop, key: _shopKey),
+                        SizedBox(width: d.spaceMedium),
+                        _buildSmallButton('🏆', _tr('top'), d),
+                        SizedBox(width: d.spaceMedium),
+                        _buildSmallButton('👤', _tr('me'), d),
+                      ],
+                    ),
+
+                    const Spacer(),
+
+                    MyButton(
+                      type: ButtonType.glass,
+                      width: double.infinity,
+                      height: d.cardHeight,
+                      onPressed: () {},
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            '🐍',
-                            style: TextStyle(fontSize: d.iconHuge),
-                          ),
-
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              MyButton(
-                                type: ButtonType.primary,
-                                text: _tr('play'),
-                                icon: CupertinoIcons.play_fill,
-                                onPressed: () {},
-                              ),
-
-                              SizedBox(height: d.spaceLarge),
-
-                              Row(
-                                children: [
-                                  _buildSmallButton('🛒', _tr('shop'), d),
-                                  SizedBox(width: d.spaceMedium),
-                                  _buildSmallButton('🏆', _tr('top'), d),
-                                  SizedBox(width: d.spaceMedium),
-                                  _buildSmallButton('👤', _tr('me'), d),
-                                ],
-                              ),
-                            ],
-                          ),
-
-                          MyButton(
-                            type: ButtonType.glass,
-                            width: double.infinity,
-                            height: d.cardHeight,
-                            onPressed: () {},
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text('🎁', style: TextStyle(fontSize: d.iconMedium)),
-                                SizedBox(width: d.spaceMedium),
-                                Flexible(
-                                  child: MyText(
-                                    _tr('daily_reward'),
-                                    fontSize: d.bodySmall,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          Text('🎁', style: TextStyle(fontSize: d.iconMedium)),
+                          SizedBox(width: d.spaceMedium),
+                          MyText(
+                            _tr('daily_reward'),
+                            fontSize: d.bodySmall,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary,
                           ),
                         ],
                       ),
                     ),
-                  ),
 
-                  SizedBox(height: d.spaceMedium),
-                ],
+                    SizedBox(height: d.spaceLarge),
+                  ],
+                ),
               ),
             ),
           ),
@@ -156,15 +149,21 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  Widget _buildSmallButton(String emoji, String title, Dimensions d) {
+  Widget _buildSmallButton(
+      String emoji,
+      String title,
+      Dimensions d, {
+        VoidCallback? onPressed,
+        Key? key,
+      }) {
     return Expanded(
       child: MyButton(
+        key: key,
         type: ButtonType.glass,
         height: d.cardHeightSmall,
-        onPressed: () {},
+        onPressed: onPressed ?? () {},
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Text(emoji, style: TextStyle(fontSize: d.iconMedium)),
             SizedBox(height: d.spaceTiny),
@@ -173,9 +172,6 @@ class _MainScreenState extends State<MainScreen> {
               fontSize: d.caption,
               fontWeight: FontWeight.w600,
               color: AppColors.textPrimary,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
             ),
           ],
         ),

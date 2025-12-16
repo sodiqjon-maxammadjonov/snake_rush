@@ -63,133 +63,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final d = Dimensions(context);
+    final navBarHeight =
+        CupertinoNavigationBar().preferredSize.height +
+            MediaQuery.of(context).padding.top;
+    return CupertinoPageScaffold(
+      backgroundColor: CupertinoColors.transparent,
+      navigationBar: CupertinoNavigationBar(
+        backgroundColor: CupertinoColors.transparent,
+        border: null,
+        leading: MyButton(
+          type: ButtonType.icon,
+          icon: CupertinoIcons.back,
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        middle: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🪙', style: TextStyle(fontSize: d.iconMedium)),
+            SizedBox(width: d.spaceSmall),
+            MyText(
+              _tr('settings'),
+              fontSize: d.title,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ],
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: d.maxContentWidth),
+        child: Column(
+          children: [
+            Expanded(
+              child: ListView(
+                padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
+                physics: const BouncingScrollPhysics(),
+                children: [
 
-    return SafeArea(
-      child: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: d.maxContentWidth),
-          child: Column(
-            children: [
-              Padding(
-                padding: EdgeInsets.all(d.space),
-                child: Row(
-                  children: [
-                    MyButton(
-                      type: ButtonType.icon,
-                      icon: CupertinoIcons.back,
-                      onPressed: () => Navigator.of(context).pop(),
+                  SizedBox(height: navBarHeight),
+                  SizedBox(height: d.spaceLarge),
+
+                  _buildVolumeControl(
+                    d: d,
+                    icon: '🎮',
+                    title: _tr('game_sound'),
+                    volume: _gameVolume,
+                    onChanged: (value) {
+                      setState(() => _gameVolume = value);
+                      _audioManager.setGameVolume(value);
+                    },
+                  ),
+
+                  SizedBox(height: d.space),
+
+                  _buildVolumeControl(
+                    d: d,
+                    icon: '🎵',
+                    title: _tr('music'),
+                    volume: _musicVolume,
+                    onChanged: (value) {
+                      setState(() => _musicVolume = value);
+                      _audioManager.setMusicVolume(value);
+                    },
+                  ),
+
+                  SizedBox(height: d.spaceXLarge),
+
+                  _buildGameOption(
+                    d: d,
+                    key: _leaderboardKey,
+                    icon: '🏆',
+                    title: _tr('leaderboard'),
+                    onTap: _openLeaderboard,
+                  ),
+
+                  SizedBox(height: d.spaceMedium),
+
+                  _buildGameOption(
+                    d: d,
+                    icon: '❓',
+                    title: _tr('how_to_play'),
+                    onTap: () {},
+                  ),
+
+                  SizedBox(height: d.spaceMedium),
+
+                  _buildGameOption(
+                    d: d,
+                    icon: '📱',
+                    title: _tr('share_game'),
+                    onTap: () {},
+                  ),
+
+                  SizedBox(height: d.spaceMedium),
+
+                  _buildGameOption(
+                    d: d,
+                    key: _languageKey,
+                    icon: _languageService.flag,
+                    title: _tr('language'),
+                    subtitle: _languageService.name,
+                    onTap: _openLanguageSelector,
+                  ),
+
+                  SizedBox(height: d.spaceXLarge),
+
+                  Center(
+                    child: MyText(
+                      'Snake Rush v1.0',
+                      fontSize: d.caption,
+                      color: AppColors.textMuted,
                     ),
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('⚙️', style: TextStyle(fontSize: d.iconMedium)),
-                          SizedBox(width: d.spaceSmall),
-                          Flexible(
-                            child: MyText(
-                              _tr('settings'),
-                              fontSize: d.title,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.textPrimary,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: d.backButtonSize),
-                  ],
-                ),
+                  ),
+
+                  SizedBox(height: d.spaceLarge),
+                ],
               ),
-
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.symmetric(horizontal: d.paddingScreen),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    SizedBox(height: d.spaceLarge),
-
-                    _buildVolumeControl(
-                      d: d,
-                      icon: '🎮',
-                      title: _tr('game_sound'),
-                      volume: _gameVolume,
-                      onChanged: (value) {
-                        setState(() => _gameVolume = value);
-                        _audioManager.setGameVolume(value);
-                      },
-                    ),
-
-                    SizedBox(height: d.space),
-
-                    _buildVolumeControl(
-                      d: d,
-                      icon: '🎵',
-                      title: _tr('music'),
-                      volume: _musicVolume,
-                      onChanged: (value) {
-                        setState(() => _musicVolume = value);
-                        _audioManager.setMusicVolume(value);
-                      },
-                    ),
-
-                    SizedBox(height: d.spaceXLarge),
-
-                    _buildGameOption(
-                      d: d,
-                      key: _leaderboardKey,
-                      icon: '🏆',
-                      title: _tr('leaderboard'),
-                      onTap: _openLeaderboard,
-                    ),
-
-                    SizedBox(height: d.spaceMedium),
-
-                    _buildGameOption(
-                      d: d,
-                      icon: '❓',
-                      title: _tr('how_to_play'),
-                      onTap: () {},
-                    ),
-
-                    SizedBox(height: d.spaceMedium),
-
-                    _buildGameOption(
-                      d: d,
-                      icon: '📱',
-                      title: _tr('share_game'),
-                      onTap: () {},
-                    ),
-
-                    SizedBox(height: d.spaceMedium),
-
-                    _buildGameOption(
-                      d: d,
-                      key: _languageKey,
-                      icon: _languageService.flag,
-                      title: _tr('language'),
-                      subtitle: _languageService.name,
-                      onTap: _openLanguageSelector,
-                    ),
-
-                    SizedBox(height: d.spaceXLarge),
-
-                    Center(
-                      child: MyText(
-                        'Snake Rush v1.0',
-                        fontSize: d.caption,
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-
-                    SizedBox(height: d.spaceLarge),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

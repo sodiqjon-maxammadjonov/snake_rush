@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="com.android.vending.BILLING" />
     <application
         android:label="snake_rush"
         android:name="${applicationName}"
@@ -30,9 +31,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-2110406871216164~1986335162"/>
     </application>
     <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/training/package-visibaility and
          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
