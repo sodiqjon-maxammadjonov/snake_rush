@@ -8,14 +8,14 @@ import '../../utils/services/ad/ad_service.dart';
 import '../../utils/ui/colors.dart';
 import '../../utils/ui/dimensions.dart';
 
-class ShopScreen extends StatefulWidget {
-  const ShopScreen({super.key});
+class CoinShopScreen extends StatefulWidget {
+  const CoinShopScreen({super.key});
 
   @override
-  State<ShopScreen> createState() => _ShopScreenState();
+  State<CoinShopScreen> createState() => _CoinShopScreenState();
 }
 
-class _ShopScreenState extends State<ShopScreen> {
+class _CoinShopScreenState extends State<CoinShopScreen> {
   final _languageService = LanguageService();
   final _storage = StorageService();
   final _adService = AdService();

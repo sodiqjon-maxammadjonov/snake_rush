@@ -1,8 +1,9 @@
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/screens/shop/shop_screen.dart';
+import 'package:snake_rush/screens/shop/coin_shop_screen.dart';
 import 'package:snake_rush/utils/const_widgets/my_text.dart';
 import 'package:snake_rush/utils/widgets/coin_widget.dart';
 import 'package:snake_rush/utils/widgets/my_button.dart';
+import '../../game/screen/game_loading screen.dart';
 import '../../utils/const_widgets/game_background.dart';
 import '../../utils/navigator/morph_navigator.dart';
 import '../../utils/services/language/language_service.dart';
@@ -46,13 +47,21 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  void _openShop(){}
+  void _openShop() {}
 
-  void _openCoinShop(){
+  void _openCoinShop() {
     MorphNavigator.open(
-        context: context,
-        sourceKey: _coinShopKey,
-        child: const ShopScreen()
+      context: context,
+      sourceKey: _coinShopKey,
+      child: const CoinShopScreen(),
+    );
+  }
+
+  void _play() {
+    Navigator.of(context).push(
+      CupertinoPageRoute(
+        builder: (_) => const GameLoadingScreen(),
+      ),
     );
   }
 
@@ -86,7 +95,10 @@ class _MainScreenState extends State<MainScreen> {
                             style: TextStyle(fontSize: d.iconMedium),
                           ),
                         ),
-                        CoinWidget(onAddPressed: _openCoinShop, key: _coinShopKey),
+                        CoinWidget(
+                          onAddPressed: _openCoinShop,
+                          key: _coinShopKey,
+                        ),
                       ],
                     ),
 
@@ -103,14 +115,15 @@ class _MainScreenState extends State<MainScreen> {
                       type: ButtonType.primary,
                       text: _tr('play'),
                       icon: CupertinoIcons.play_fill,
-                      onPressed: () {},
+                      onPressed: _play,
                     ),
 
                     SizedBox(height: d.spaceLarge),
 
                     Row(
                       children: [
-                        _buildSmallButton('🛒', _tr('shop'), d, onPressed: _openShop),
+                        _buildSmallButton('🛒', _tr('shop'), d,
+                            onPressed: _openShop),
                         SizedBox(width: d.spaceMedium),
                         _buildSmallButton('🏆', _tr('top'), d),
                         SizedBox(width: d.spaceMedium),
