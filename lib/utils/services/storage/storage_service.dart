@@ -10,12 +10,17 @@ class StorageService {
   static const String _keyLanguage = 'language';
   static const String _keyJoystickEnabled = 'joystick_enabled';
   static const String _keyJoystickSide = 'joystick_side';
+  static const String _keySelectedSkin = 'selected_skin';
+
 
   SharedPreferences? _prefs;
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
   }
+
+  Future<void> setSelectedSkin(String value) => setString(_keySelectedSkin, value);
+  String get selectedSkin => getString(_keySelectedSkin, 'classic');
 
   Future<bool> setDouble(String key, double value) async => await _prefs?.setDouble(key, value) ?? false;
   double getDouble(String key, double defaultValue) => _prefs?.getDouble(key) ?? defaultValue;

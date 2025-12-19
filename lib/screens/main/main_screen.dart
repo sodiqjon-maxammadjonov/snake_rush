@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:snake_rush/screens/other/skin/skins_screen.dart';
 import 'package:snake_rush/screens/shop/coin_shop_screen.dart';
 import 'package:snake_rush/utils/const_widgets/my_text.dart';
 import 'package:snake_rush/utils/widgets/coin_widget.dart';
@@ -21,6 +22,7 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   final GlobalKey _settingsKey = GlobalKey();
   final GlobalKey _coinShopKey = GlobalKey();
+  final GlobalKey _skinsKey = GlobalKey();
   final _languageService = LanguageService();
 
   @override
@@ -50,6 +52,14 @@ class _MainScreenState extends State<MainScreen> {
       context: context,
       sourceKey: _coinShopKey,
       child: const CoinShopScreen(),
+    );
+  }
+
+  void _openSkinsScreen() {
+    MorphNavigator.open(
+      context: context,
+      sourceKey: _skinsKey,
+      child: const SkinsScreen(),
     );
   }
 
@@ -112,7 +122,7 @@ class _MainScreenState extends State<MainScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildMenuCard('🛒', _tr('shop'), d),
+                    _buildMenuCard('🛒', _tr('shop'), d,onTap: _openSkinsScreen,key: _skinsKey),
                     SizedBox(width: d.spaceMedium),
                     _buildMenuCard('🏆', _tr('top'), d),
                     SizedBox(width: d.spaceMedium),
@@ -149,13 +159,19 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
-
-  Widget _buildMenuCard(String emoji, String title, Dimensions d) {
+  Widget _buildMenuCard(
+      String emoji,
+      String title,
+      Dimensions d, {
+        VoidCallback? onTap,
+        Key? key,
+      }) {
     return Expanded(
       child: MyButton(
+        key: key,
         type: ButtonType.glass,
         height: d.cardHeightSmall,
-        onPressed: () {},
+        onPressed: onTap,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -174,4 +190,5 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
+
 }
