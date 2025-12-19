@@ -1,118 +1,139 @@
-import 'package:flame/game.dart';
+import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'components/game_camera.dart';
-import 'components/game_joystick.dart';
-import 'components/game_map.dart';
-import 'components/mini_map.dart';
-import 'components/snake.dart';
+import 'package:flame/game.dart';
+import 'package:flame/experimental.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:snake_rush/utils/services/storage/storage_service.dart';
+import '../utils/services/service_locator.dart';
+
 import 'config/game_constants.dart';
+import 'components/game_map.dart';
+import 'components/snake.dart';
+import 'components/game_joystick.dart';
+import 'components/mini_map.dart';
 
-/// Asosiy o'yin klassi - Performance optimizatsiya qilingan
-class HungrySerpentGame extends FlameGame with ScaleDetector {
-  late final GameMap _gameMap;
-  late final Snake _snake;
-  late final MiniMap _miniMap;
-  late final GameJoystick _joystick;
-  late final GameCameraController _cameraController;
+class HungrySnakeGame extends FlameGame with PanDetector {
+  late GameMap _gameMap;
+  late Snake _snake;
+  late MiniMap _miniMap;
 
-  // Getters
-  GameMap get gameMap => _gameMap;
-  Snake get snake => _snake;
-  MiniMap get miniMap => _miniMap;
-  GameJoystick get joystick => _joystick;
-  GameCameraController get cameraController => _cameraController;
+  GameJoystick? _joystick;
+
+  bool _isResourcesLoaded = false;
+  bool _useJoystick = true;
+  String _side = 'left';
+
+  Vector2 _touchDirection = Vector2.zero();
 
   @override
   Future<void> onLoad() async {
-    await super.onLoad();
-    await _initializeGame();
-  }
-
-  /// O'yinni boshlang'ich holatga o'rnatish
-  Future<void> _initializeGame() async {
-    _cameraController = GameCameraController(world: world);
-    await add(_cameraController.camera);
+    final storage = getIt<StorageService>();
+    _useJoystick = storage.joystickEnabled;
+    _side = storage.joystickSide;
 
     _gameMap = GameMap();
     await world.add(_gameMap);
 
-    final startPosition = Vector2(
-      GameConstants.mapWidth / 2,
-      GameConstants.mapHeight / 2,
-    );
-
-    _snake = Snake(
-      position: startPosition,
-      gameMap: _gameMap,
-    );
+    _snake = Snake(map: _gameMap);
     await world.add(_snake);
 
-    _cameraController.followSnake(_snake);
-
-    _miniMap = MiniMap(
-      mapSize: _gameMap.mapSize,
-      snake: _snake,
+    camera.setBounds(
+      Rectangle.fromLTWH(0, 0, GameConstants.mapWidth, GameConstants.mapHeight),
     );
-    await _cameraController.camera.viewport.add(_miniMap);
+    camera.follow(_snake);
+    camera.viewfinder.zoom = GameConstants.cameraZoom;
 
-    _joystick = GameJoystick();
-    await _cameraController.camera.viewport.add(_joystick.component);
+    _setupJoystickAndUI();
+    _isResourcesLoaded = true;
+  }
+  @override
+  void render(Canvas canvas) {
+    if (!_isResourcesLoaded) {
+      _drawLoadingText(canvas);
+      return;
+    }
+    super.render(canvas);
   }
 
+  void _drawLoadingText(Canvas canvas) {
+    final textPainter = TextPaint(
+      style: const TextStyle(color: CupertinoColors.white, fontSize: 24),
+    );
+    textPainter.render(canvas, "LOADING...", Vector2(size.x/2 - 50, size.y/2));
+  }
+
+  void _setupJoystickAndUI() {
+    if (_joystick != null) {
+      if (_joystick!.parent != null) {
+        _joystick!.removeFromParent();
+      }
+      _joystick = null;
+    }
+
+    if (_useJoystick) {
+      EdgeInsets margin;
+
+      if (_side == 'left') {
+        margin = const EdgeInsets.only(left: 40, bottom: 40);
+      } else {
+        margin = const EdgeInsets.only(right: 40, bottom: 40);
+      }
+
+      _joystick = GameJoystick(margin: margin);
+      camera.viewport.add(_joystick!);
+    }
+
+   try {
+      bool miniMapExists = camera.viewport.children.any((c) => c is MiniMap);
+      if (!miniMapExists) {
+        _miniMap = MiniMap(player: _snake);
+        camera.viewport.add(_miniMap);
+      }
+    } catch(e) {
+      // ignore initialization error if first run
+    }
+  }
+
+  void updateSettings() {
+    final storage = getIt<StorageService>();
+    bool newUse = storage.joystickEnabled;
+    String newSide = storage.joystickSide;
+
+    if (newUse != _useJoystick || newSide != _side) {
+      _useJoystick = newUse;
+      _side = newSide;
+      _setupJoystickAndUI();
+    }
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
-    _updateSnakeMovement();
+
+    if (_useJoystick && _joystick != null) {
+      if (_joystick!.direction != JoystickDirection.idle) {
+        _snake.direction = _joystick!.relativeDelta;
+      }
+    }
+    else {
+      if (!_touchDirection.isZero()) {
+        _snake.direction = _touchDirection;
+      }
+    }
   }
 
-  /// Ilonni joystick bilan harakatlantirish
-  void _updateSnakeMovement() {
-    if (!_joystick.isIdle && _snake.isAlive) {
-      _snake.setDirection(_joystick.relativeDelta);
+
+  @override
+  void onPanUpdate(DragUpdateInfo info) {
+    if (_useJoystick) return;
+
+    if (info.delta.global.length2 > 0) {
+      _touchDirection = info.delta.global.normalized();
     }
   }
 
   @override
-  void onScaleUpdate(ScaleUpdateInfo info) {
-    final scale = info.scale.global;
-
-    // Pinch to zoom
-    if (scale.length != 1.0) {
-      _cameraController.zoom(scale.length);
-    }
-  }
-
-  /// O'yinni pause qilish
-  void pauseGame() {
-    pauseEngine();
-    _snake.pause();
-  }
-
-  /// O'yinni davom ettirish
-  void resumeGame() {
-    resumeEngine();
-    _snake.resume();
-  }
-
-  /// O'yinni qayta boshlash
-  void resetGame() {
-    final startPosition = Vector2(
-      GameConstants.mapWidth / 2,
-      GameConstants.mapHeight / 2,
-    );
-
-    _snake.reset(startPosition);
-    _cameraController.reset();
-  }
-
-  /// FPS optimization
-  @override
-  int? get refreshRate => 60; // 60 FPS
-
-  @override
-  void onRemove() {
-    // Tozalash
-    super.onRemove();
+  void onPanEnd(DragEndInfo info) {
+    //just swim
   }
 }

@@ -1,14 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/utils/services/audio/audio_manager.dart';
+import '../services/audio/audio_manager.dart';
+import '../services/service_locator.dart';
 import '../ui/colors.dart';
 import '../ui/dimensions.dart';
 
-enum ButtonType {
-  primary,
-  secondary,
-  glass,
-  icon,
-}
+enum ButtonType { primary, secondary, glass, icon }
 
 class MyButton extends StatefulWidget {
   final VoidCallback? onPressed;
@@ -46,21 +42,31 @@ class MyButton extends StatefulWidget {
 
 class _MyButtonState extends State<MyButton>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final AudioManager _audioManager; // Cached singleton
   bool _isPressed = false;
-  final _audioManager = AudioManager();
 
   @override
   void initState() {
     super.initState();
+
+    // ✅ Singleton ni bir marta cache qilamiz
+    _audioManager = getIt<AudioManager>();
+
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
+      duration: const Duration(milliseconds: 100), // Tezroq animation
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.96, // Kamroq scale
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOut,
+      ),
     );
   }
 
@@ -71,25 +77,32 @@ class _MyButtonState extends State<MyButton>
   }
 
   void _handleTapDown(TapDownDetails details) {
+    if (!mounted || widget.onPressed == null) return;
     setState(() => _isPressed = true);
     _controller.forward();
   }
 
   void _handleTapUp(TapUpDetails details) {
+    if (!mounted) return;
     setState(() => _isPressed = false);
     _controller.reverse();
   }
 
   void _handleTapCancel() {
+    if (!mounted) return;
     setState(() => _isPressed = false);
     _controller.reverse();
   }
 
   void _handleTap() {
+    if (widget.onPressed == null) return;
+
+    // ✅ INSTANT sound - await yo'q!
     if (widget.playSound) {
       _audioManager.playButtonClick();
     }
-    widget.onPressed?.call();
+
+    widget.onPressed!();
   }
 
   @override
@@ -146,10 +159,11 @@ class _MyButtonState extends State<MyButton>
     return Container(
       width: widget.width,
       height: widget.height ?? d.buttonHeightSmall,
-      padding: widget.padding ?? EdgeInsets.symmetric(
-        horizontal: d.paddingCard,
-        vertical: d.paddingButton,
-      ),
+      padding: widget.padding ??
+          EdgeInsets.symmetric(
+            horizontal: d.paddingCard,
+            vertical: d.paddingButton,
+          ),
       decoration: BoxDecoration(
         color: widget.backgroundColor ?? AppColors.glassLight,
         borderRadius: widget.borderRadius ?? BorderRadius.circular(d.radiusMedium),
@@ -218,12 +232,15 @@ class _MyButtonState extends State<MyButton>
             size: d.iconMedium,
           ),
           SizedBox(width: d.spaceMedium),
-          Text(
-            widget.text!,
-            style: TextStyle(
-              fontSize: d.button,
-              fontWeight: FontWeight.bold,
-              color: widget.textColor ?? AppColors.textPrimary,
+          Flexible(
+            child: Text(
+              widget.text!,
+              style: TextStyle(
+                fontSize: d.button,
+                fontWeight: FontWeight.bold,
+                color: widget.textColor ?? AppColors.textPrimary,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -247,6 +264,7 @@ class _MyButtonState extends State<MyButton>
           fontWeight: FontWeight.bold,
           color: widget.textColor ?? AppColors.textPrimary,
         ),
+        overflow: TextOverflow.ellipsis,
       );
     }
 

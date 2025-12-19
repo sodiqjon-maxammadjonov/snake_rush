@@ -2,114 +2,52 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import '../config/game_constants.dart';
 
-/// O'yin mapini boshqaruvchi komponent
-class GameMap extends PositionComponent {
-  late final Paint _borderPaint;
+class GameMap extends PositionComponent with HasGameRef {
+  late final Paint _bgPaint;
   late final Paint _gridPaint;
-  late final Paint _backgroundPaint;
-
-  final Vector2 mapSize = Vector2(
-    GameConstants.mapWidth,
-    GameConstants.mapHeight,
-  );
+  late final Paint _borderPaint;
+  late final Rect _mapRect;
 
   @override
   Future<void> onLoad() async {
-    await super.onLoad();
-    size = mapSize;
-    position = Vector2.zero();
-    anchor = Anchor.topLeft;
+    size = Vector2(GameConstants.mapWidth, GameConstants.mapHeight);
+    priority = -100;
 
-    _initializePaints();
-  }
+    _bgPaint = Paint()..color = GameConstants.mapBackground..style = PaintingStyle.fill;
+    _gridPaint = Paint()..color = GameConstants.mapGrid..style = PaintingStyle.stroke..strokeWidth = 1.0;
+    _borderPaint = Paint()..color = GameConstants.mapBorder..style = PaintingStyle.stroke..strokeWidth = 10.0;
 
-  void _initializePaints() {
-    _backgroundPaint = Paint()
-      ..color = GameConstants.mapBackgroundColor
-      ..style = PaintingStyle.fill;
-
-    _gridPaint = Paint()
-      ..color = GameConstants.mapGridColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    _borderPaint = Paint()
-      ..color = GameConstants.mapBorderColor
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = GameConstants.mapBorderWidth
-      ..maskFilter = MaskFilter.blur(
-        BlurStyle.outer,
-        GameConstants.mapBorderBlurRadius,
-      );
+    _mapRect = Rect.fromLTWH(0, 0, width, height);
   }
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
+    canvas.drawRect(_mapRect, _bgPaint);
 
-    _renderBackground(canvas);
-    _renderGrid(canvas);
-    _renderBorder(canvas);
+    _renderVisibleGrid(canvas);
+
+    canvas.drawRect(_mapRect, _borderPaint);
   }
 
-  void _renderBackground(Canvas canvas) {
-    canvas.drawRect(
-      Rect.fromLTWH(0, 0, mapSize.x, mapSize.y),
-      _backgroundPaint,
-    );
-  }
+  void _renderVisibleGrid(Canvas canvas) {
+    final visible = gameRef.camera.visibleWorldRect;
+    final grid = GameConstants.gridSize;
 
-  void _renderGrid(Canvas canvas) {
-    // Vertikal chiziqlar
-    for (double x = 0; x <= mapSize.x; x += GameConstants.mapGridSize) {
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, mapSize.y),
-        _gridPaint,
-      );
+    final double startX = (visible.left / grid).floor() * grid;
+    final double endX = (visible.right / grid).ceil() * grid;
+    final double startY = (visible.top / grid).floor() * grid;
+    final double endY = (visible.bottom / grid).ceil() * grid;
+
+    final left = startX.clamp(0.0, width);
+    final right = endX.clamp(0.0, width);
+    final top = startY.clamp(0.0, height);
+    final bottom = endY.clamp(0.0, height);
+
+    for (double x = left; x <= right; x += grid) {
+      canvas.drawLine(Offset(x, top), Offset(x, bottom), _gridPaint);
     }
-
-    // Gorizontal chiziqlar
-    for (double y = 0; y <= mapSize.y; y += GameConstants.mapGridSize) {
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(mapSize.x, y),
-        _gridPaint,
-      );
+    for (double y = top; y <= bottom; y += grid) {
+      canvas.drawLine(Offset(left, y), Offset(right, y), _gridPaint);
     }
-  }
-
-  void _renderBorder(Canvas canvas) {
-    final borderRect = Rect.fromLTWH(
-      GameConstants.mapBorderWidth / 2,
-      GameConstants.mapBorderWidth / 2,
-      mapSize.x - GameConstants.mapBorderWidth,
-      mapSize.y - GameConstants.mapBorderWidth,
-    );
-    canvas.drawRect(borderRect, _borderPaint);
-  }
-
-  /// Map chegaralarida ekanligini tekshirish
-  bool isNearBorder(Vector2 position, double threshold) {
-    return position.x < threshold ||
-        position.x > mapSize.x - threshold ||
-        position.y < threshold ||
-        position.y > mapSize.y - threshold;
-  }
-
-  /// Pozitsiya map ichida ekanligini tekshirish
-  bool isInsideMap(Vector2 position, double radius) {
-    return position.x >= radius &&
-        position.x <= mapSize.x - radius &&
-        position.y >= radius &&
-        position.y <= mapSize.y - radius;
-  }
-
-  /// Pozitsiyani map ichida cheklash
-  Vector2 clampPosition(Vector2 position, double radius) {
-    return Vector2(
-      position.x.clamp(radius, mapSize.x - radius),
-      position.y.clamp(radius, mapSize.y - radius),
-    );
   }
 }

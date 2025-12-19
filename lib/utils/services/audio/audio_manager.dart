@@ -1,151 +1,103 @@
-import 'package:flame_audio/flame_audio.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../storage/storage_service.dart';
 
-/// Audio Manager - Xavfsiz versiya (fayllar yo'q bo'lsa ham crash qilmaydi)
 class AudioManager {
   static final AudioManager _instance = AudioManager._internal();
   factory AudioManager() => _instance;
   AudioManager._internal();
 
   final _storage = StorageService();
+  late final AudioPlayer _bgmPlayer;
+  final List<AudioPlayer> _sfxPool = [];
+  final int _poolSize = 4;
+  int _poolIndex = 0;
 
   double _musicVolume = 0.5;
   double _gameVolume = 0.7;
-  bool _isMusicPlaying = false;
-  bool _isGameMusicPlaying = false;
-  bool _audioEnabled = false; // Audio mavjudmi?
+  bool _isInitialized = false;
 
   double get musicVolume => _musicVolume;
   double get gameVolume => _gameVolume;
-  bool get isMusicPlaying => _isMusicPlaying;
-  bool get isAudioEnabled => _audioEnabled;
 
   Future<void> init() async {
+    if (_isInitialized) return;
     try {
-      // Audio fayllarni yuklab ko'rish
-      await FlameAudio.audioCache.loadAll([
-        'music/background.mp3',
-        'sounds/eat.mp3',
-        'sounds/game_over.mp3',
-        'sounds/button_click.mp3',
-      ]);
+      await AudioPlayer.global.setAudioContext(AudioContext(
+        android: const AudioContextAndroid(
+          audioFocus: AndroidAudioFocus.none,
+          usageType: AndroidUsageType.game,
+          contentType: AndroidContentType.sonification,
+        ),
+        iOS: AudioContextIOS(
+          category: AVAudioSessionCategory.playback,
+          options: {
+            AVAudioSessionOptions.mixWithOthers,
+            AVAudioSessionOptions.duckOthers,
+          },
+        ),
+      ));
+
+      _bgmPlayer = AudioPlayer();
+      await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+
+      for (int i = 0; i < _poolSize; i++) {
+        _sfxPool.add(AudioPlayer());
+      }
 
       _musicVolume = _storage.musicVolume;
       _gameVolume = _storage.gameVolume;
-      _audioEnabled = true;
 
-      print('✅ Audio successfully loaded');
+      _isInitialized = true;
+      print('✅ AudioManager initialized and context set.');
     } catch (e) {
-      // Agar audio yo'q bo'lsa, xato bermaydi
-      _audioEnabled = false;
-      print('⚠️ Audio files not found, continuing without audio: $e');
+      print('❌ Audio Error: $e');
     }
   }
 
-  // ✅ Main menu musiqasi
-  Future<void> playBackgroundMusic() async {
-    if (!_audioEnabled) return;
-
+  void playBackgroundMusic() async {
+    if (!_isInitialized) return;
     try {
-      if (!_isMusicPlaying) {
-        await FlameAudio.bgm.stop();
-        await FlameAudio.bgm.play('music/background.mp3', volume: _musicVolume);
-        _isMusicPlaying = true;
-        _isGameMusicPlaying = false;
-      }
+      if (_bgmPlayer.state == PlayerState.playing) return;
+      await _bgmPlayer.play(AssetSource('audio/music/background.mp3'), volume: _musicVolume);
     } catch (e) {
-      print('⚠️ Failed to play background music: $e');
+      print('⚠️ BGM play error: $e');
     }
   }
 
-  // ✅ Game musiqasi
-  Future<void> playGameMusic() async {
-    if (!_audioEnabled) return;
+  void _playSfx(String path, {double mult = 1.0}) {
+    if (!_isInitialized || _gameVolume <= 0) return;
 
-    try {
-      // Hozircha background music davom etadi
-      _isGameMusicPlaying = true;
-    } catch (e) {
-      print('⚠️ Failed to play game music: $e');
-    }
+    final player = _sfxPool[_poolIndex];
+    _poolIndex = (_poolIndex + 1) % _poolSize;
+
+    player.stop().then((_) {
+      player.play(
+          AssetSource(path),
+          volume: (_gameVolume * mult).clamp(0.0, 1.0)
+      );
+    });
   }
 
-  Future<void> stopBackgroundMusic() async {
-    if (!_audioEnabled) return;
+  void playButtonClick() => _playSfx('audio/sounds/button_click.mp3');
+  void playEatSound() => _playSfx('audio/sounds/eat.mp3', mult: 1.1);
+  void playGameOverSound() => _playSfx('audio/sounds/game_over.mp3', mult: 1.2);
 
-    try {
-      await FlameAudio.bgm.stop();
-      _isMusicPlaying = false;
-      _isGameMusicPlaying = false;
-    } catch (e) {
-      print('⚠️ Failed to stop music: $e');
-    }
+  void setMusicVolume(double vol) {
+    _musicVolume = vol.clamp(0.0, 1.0);
+    _bgmPlayer.setVolume(_musicVolume);
+    _storage.setMusicVolume(_musicVolume);
   }
 
-  Future<void> pauseBackgroundMusic() async {
-    if (!_audioEnabled) return;
-
-    try {
-      await FlameAudio.bgm.pause();
-    } catch (e) {
-      print('⚠️ Failed to pause music: $e');
-    }
+  void setGameVolume(double vol) {
+    _gameVolume = vol.clamp(0.0, 1.0);
+    _storage.setGameVolume(_gameVolume);
   }
-
-  Future<void> resumeBackgroundMusic() async {
-    if (!_audioEnabled) return;
-
-    try {
-      await FlameAudio.bgm.resume();
-    } catch (e) {
-      print('⚠️ Failed to resume music: $e');
-    }
-  }
-
-  Future<void> setMusicVolume(double volume) async {
-    _musicVolume = volume.clamp(0.0, 1.0);
-
-    if (_audioEnabled) {
-      try {
-        FlameAudio.bgm.audioPlayer.setVolume(_musicVolume);
-      } catch (e) {
-        print('⚠️ Failed to set volume: $e');
-      }
-    }
-
-    await _storage.setMusicVolume(_musicVolume);
-  }
-
-  Future<void> setGameVolume(double volume) async {
-    _gameVolume = volume.clamp(0.0, 1.0);
-    await _storage.setGameVolume(_gameVolume);
-  }
-
-  Future<void> playSound(String sound, {double volumeMultiplier = 1.0}) async {
-    if (!_audioEnabled) return;
-
-    try {
-      final adjustedVolume = (_gameVolume * volumeMultiplier).clamp(0.0, 1.0);
-      await FlameAudio.play(sound, volume: adjustedVolume);
-    } catch (e) {
-      print('⚠️ Failed to play sound $sound: $e');
-    }
-  }
-
-  Future<void> playEatSound() => playSound('sounds/eat.mp3');
-  Future<void> playGameOverSound() => playSound('sounds/game_over.mp3');
-  Future<void> playButtonClick() => playSound('sounds/button_click.mp3');
 
   Future<void> dispose() async {
-    if (!_audioEnabled) return;
-
-    try {
-      await FlameAudio.bgm.stop();
-      await FlameAudio.bgm.dispose();
-      _isMusicPlaying = false;
-      _isGameMusicPlaying = false;
-    } catch (e) {
-      print('⚠️ Failed to dispose audio: $e');
+    await _bgmPlayer.dispose();
+    for (var p in _sfxPool) {
+      await p.dispose();
     }
+    _isInitialized = false;
   }
 }

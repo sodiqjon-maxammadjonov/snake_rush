@@ -8,29 +8,50 @@ import 'iap/iap_service.dart';
 final getIt = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
-  getIt.registerSingleton<StorageService>(StorageService());
-  await getIt<StorageService>().init();
+  // 1. Hot Restart paytida xato chiqmasligi uchun oldin hammasini tozalaymiz
+  await getIt.reset();
 
-  getIt.registerSingleton<AudioManager>(AudioManager());
-  await getIt<AudioManager>().init();
-  await getIt<AudioManager>().playBackgroundMusic();
+  // 2. StorageService - eng birinchi bo'lishi kerak, chunki boshqalar unga bog'liq
+  final storage = StorageService();
+  getIt.registerSingleton<StorageService>(storage);
+  await storage.init();
 
-  getIt.registerSingleton<LanguageService>(LanguageService());
-  await getIt<LanguageService>().init();
+  // 3. AudioManager - musiqani yuklash va boshlash
+  final audio = AudioManager();
+  getIt.registerSingleton<AudioManager>(audio);
+  await audio.init();
+  // Musiqani darhol boshlab yuborish
+  audio.playBackgroundMusic();
 
-  getIt.registerSingleton<AdService>(AdService());
-  await getIt<AdService>().init();
+  // 4. LanguageService - til sozlamalari
+  final language = LanguageService();
+  getIt.registerSingleton<LanguageService>(language);
+  await language.init();
 
-  getIt.registerSingleton<IAPService>(IAPService());
-  await getIt<IAPService>().initialize();
+  // 5. Reklama va To'lov tizimlari (bular odatda dispose-da tozalashni talab qiladi)
+  final ads = AdService();
+  getIt.registerSingleton<AdService>(ads);
+  await ads.init();
+
+  final iap = IAPService();
+  getIt.registerSingleton<IAPService>(iap);
+  await iap.initialize();
+
+  print('✅ Hamma servislar muvaffaqiyatli ishga tushdi!');
 }
 
 Future<void> disposeServices() async {
-  await getIt<AudioManager>().dispose();
+  if (getIt.isRegistered<AudioManager>()) {
+    await getIt<AudioManager>().dispose();
+  }
 
-  getIt<AdService>().dispose();
-  getIt<IAPService>().dispose();
+  if (getIt.isRegistered<AdService>()) {
+    getIt<AdService>().dispose();
+  }
+
+  if (getIt.isRegistered<IAPService>()) {
+    getIt<IAPService>().dispose();
+  }
 
   await getIt.reset();
 }
-

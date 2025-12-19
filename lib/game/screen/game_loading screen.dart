@@ -1,121 +1,152 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flame/game.dart';
-import 'package:snake_rush/game/hungry_serpend_game.dart';
-import 'package:snake_rush/utils/services/audio/audio_manager.dart';
-import 'package:snake_rush/utils/services/service_locator.dart';
-import '../../utils/const_widgets/game_background.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:snake_rush/screens/settings/settings_screen.dart';
+import 'package:snake_rush/utils/navigator/morph_navigator.dart';
+import 'package:snake_rush/utils/widgets/my_button.dart';
+import '../../utils/const_widgets/my_text.dart';
 import '../../utils/ui/colors.dart';
+import '../../utils/ui/dimensions.dart';
+import '../../utils/services/service_locator.dart';
+import '../../utils/services/language/language_service.dart';
+import '../hungry_serpend_game.dart';
 
-/// Game Loading Screen - O'yin yuklanishi uchun
-class GameLoadingScreen extends StatefulWidget {
-  const GameLoadingScreen({super.key});
+class GamePlayScreen extends StatefulWidget {
+  const GamePlayScreen({super.key});
 
   @override
-  State<GameLoadingScreen> createState() => _GameLoadingScreenState();
+  State<GamePlayScreen> createState() => _GamePlayScreenState();
 }
 
-class _GameLoadingScreenState extends State<GameLoadingScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-  HungrySerpentGame? _game;
-  bool _isLoading = true;
+class _GamePlayScreenState extends State<GamePlayScreen> {
+  final HungrySnakeGame _game = HungrySnakeGame();
+  late final LanguageService _languageService;
+  bool _isPaused = false;
+  final GlobalKey _settingsButtonKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.3, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    _controller.repeat(reverse: true);
-    _loadGame();
-  }
-
-  Future<void> _loadGame() async {
-    // Background musiqani to'xtatish
-    final audioManager = getIt<AudioManager>();
-    await audioManager.pauseBackgroundMusic();
-
-    // Game obyektini yaratish (lekin onLoad chaqirmaslik!)
-    await Future.delayed(const Duration(milliseconds: 500));
-    _game = HungrySerpentGame();
-    // ❌ BU QATORNI O'CHIRDIK: await _game!.onLoad();
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (mounted) {
-      setState(() => _isLoading = false);
-      _navigateToGame();
-    }
-  }
-
-  void _navigateToGame() {
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacement(
-          CupertinoPageRoute(
-            builder: (_) => GameWidget(game: _game!),
-          ),
-        );
-      }
-    });
+    _languageService = getIt<LanguageService>();
+    _languageService.addListener(_onLanguageChanged);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _languageService.removeListener(_onLanguageChanged);
     super.dispose();
   }
 
+  void _onLanguageChanged() => setState(() {});
+
+  String _tr(String key) => _languageService.translate(key);
+
+  void _onPausePressed() {
+    setState(() => _isPaused = true);
+    _game.pauseEngine();
+  }
+
+  void _onResumePressed() {
+    _game.updateSettings();
+    _game.resumeEngine();
+    setState(() => _isPaused = false);
+  }
+
+  void _openSettings() {
+    MorphNavigator.open(
+      context: context,
+      sourceKey: _settingsButtonKey,
+      child: const SettingsScreen(),
+    );
+  }
+
+  void _exitGame() => Navigator.of(context).pop();
+
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
-      child: GlassBubblesBackground(
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Snake emoji
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  '🐍',
-                  style: TextStyle(fontSize: 120),
-                ),
+    final d = Dimensions(context);
+    final safePadding = MediaQuery.of(context).padding;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          GameWidget(game: _game),
+
+          if (!_isPaused)
+            Positioned(
+              top: safePadding.top + 8,
+              right: 16,
+              child: MyButton(
+                type: ButtonType.icon,
+                width: 40,
+                height: 40,
+                backgroundColor: Colors.black.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(10),
+                icon: CupertinoIcons.pause,
+                onPressed: _onPausePressed,
               ),
+            ),
 
-              const SizedBox(height: 40),
-
-              // Loading text
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  'ENTERING SNAKE WORLD',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                    letterSpacing: 2,
+          if (_isPaused)
+            Container(
+              color: Colors.black.withOpacity(0.7),
+              child: Center(
+                child: Container(
+                  width: d.maxContentWidth * 0.5,
+                  padding: EdgeInsets.all(d.spaceLarge),
+                  decoration: BoxDecoration(
+                    color: AppColors.bgMedium.withOpacity(0.95),
+                    borderRadius: BorderRadius.circular(d.radiusLarge),
+                    border: Border.all(color: AppColors.glassBorder, width: 1.5),
+                    boxShadow: AppColors.cardShadow,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      MyText(
+                        _tr('paused'),
+                        fontSize: d.title,
+                        bold: true,
+                        color: AppColors.textPrimary,
+                        letterSpacing: 2,
+                      ),
+                      SizedBox(height: d.spaceMedium),
+                      MyButton(
+                        type: ButtonType.primary,
+                        width: double.infinity,
+                        height: 48,
+                        text: _tr('resume'),
+                        icon: CupertinoIcons.play_fill,
+                        onPressed: _onResumePressed,
+                      ),
+                      SizedBox(height: d.spaceSmall),
+                      MyButton(
+                        key: _settingsButtonKey,
+                        type: ButtonType.glass,
+                        width: double.infinity,
+                        height: 48,
+                        text: _tr('settings').toUpperCase(),
+                        icon: CupertinoIcons.settings,
+                        onPressed: _openSettings,
+                      ),
+                      SizedBox(height: d.spaceSmall),
+                      MyButton(
+                        type: ButtonType.secondary,
+                        width: double.infinity,
+                        height: 48,
+                        text: _tr('exit'),
+                        textColor: CupertinoColors.systemRed,
+                        icon: CupertinoIcons.clear,
+                        backgroundColor: CupertinoColors.systemRed.withOpacity(0.1),
+                        onPressed: _exitGame,
+                      ),
+                    ],
                   ),
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // Loading indicator
-              CupertinoActivityIndicator(
-                radius: 16,
-                color: AppColors.primary,
-              ),
-            ],
-          ),
-        ),
+            ),
+        ],
       ),
     );
   }

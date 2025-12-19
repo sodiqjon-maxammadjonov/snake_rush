@@ -5,6 +5,7 @@ import '../../utils/navigator/morph_navigator.dart';
 import '../../utils/services/service_locator.dart';
 import '../../utils/services/audio/audio_manager.dart';
 import '../../utils/services/language/language_service.dart';
+import '../../utils/services/storage/storage_service.dart';
 import '../../utils/ui/colors.dart';
 import '../../utils/ui/dimensions.dart';
 import '../leaderboard/leaderboard_screen.dart';
@@ -22,18 +23,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   late final AudioManager _audioManager;
   late final LanguageService _languageService;
+  late final StorageService _storage;
 
   late double _gameVolume;
   late double _musicVolume;
+  late bool _joystickEnabled;
+  late String _joystickSide;
 
   @override
   void initState() {
     super.initState();
     _audioManager = getIt<AudioManager>();
     _languageService = getIt<LanguageService>();
+    _storage = getIt<StorageService>();
 
     _gameVolume = _audioManager.gameVolume;
     _musicVolume = _audioManager.musicVolume;
+    _joystickEnabled = _storage.joystickEnabled;
+    _joystickSide = _storage.joystickSide;
 
     _languageService.addListener(_onLanguageChanged);
   }
@@ -131,6 +138,100 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               SizedBox(height: d.spaceXLarge),
 
+              Padding(
+                padding:
+                EdgeInsets.only(left: d.spaceSmall, bottom: d.spaceSmall),
+                child: MyText(
+                  _tr('controls').toUpperCase(),
+                  fontSize: d.caption,
+                  bold: true,
+                  color: AppColors.textMuted,
+                ),
+              ),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.glassLight,
+                  borderRadius: BorderRadius.circular(d.radius),
+                  border: Border.all(
+                    color: AppColors.glassBorder,
+                    width: d.borderMedium,
+                  ),
+                ),
+                padding: EdgeInsets.symmetric(
+                    horizontal: d.paddingCard, vertical: d.spaceSmall),
+                child: Row(
+                  children: [
+                    Text('🕹️', style: TextStyle(fontSize: d.iconMedium)),
+                    SizedBox(width: d.spaceMedium),
+                    Expanded(
+                      child: MyText(
+                        _tr('joystick_control'),
+                        fontSize: d.body,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    CupertinoSwitch(
+                      value: _joystickEnabled,
+                      activeTrackColor: CupertinoColors.activeBlue,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _joystickEnabled = value;
+                        });
+                        _storage.setJoystickEnabled(value);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                height: _joystickEnabled ? 60 : 0,
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      SizedBox(height: d.spaceMedium),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: MyButton(
+                              type: _joystickSide == 'left'
+                                  ? ButtonType.primary
+                                  : ButtonType.glass,
+                              height: 44,
+                              text: _tr('left'),
+                              onPressed: () {
+                                setState(() => _joystickSide = 'left');
+                                _storage.setJoystickSide('left');
+                              },
+                            ),
+                          ),
+                          SizedBox(width: d.spaceMedium),
+                          Expanded(
+                            child: MyButton(
+                              type: _joystickSide == 'right'
+                                  ? ButtonType.primary
+                                  : ButtonType.glass,
+                              height: 44,
+                              text: _tr('right'),
+                              onPressed: () {
+                                setState(() => _joystickSide = 'right');
+                                _storage.setJoystickSide('right');
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: d.spaceXLarge),
+
+              // --- OTHER OPTIONS ---
               _buildGameOption(
                 d: d,
                 key: _leaderboardKey,
@@ -312,7 +413,6 @@ class LanguageSelectorScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = Dimensions(context);
     final languageService = getIt<LanguageService>();
-
     return SafeArea(
       child: Center(
         child: ConstrainedBox(
@@ -362,7 +462,8 @@ class LanguageSelectorScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => SizedBox(height: d.spaceMedium),
                   itemBuilder: (context, index) {
                     final language = languageService.availableLanguages[index];
-                    final isSelected = language.code == languageService.currentLanguage;
+                    final isSelected =
+                        language.code == languageService.currentLanguage;
 
                     return MyButton(
                       type: ButtonType.glass,
@@ -382,7 +483,9 @@ class LanguageSelectorScreen extends StatelessWidget {
                             child: MyText(
                               language.name,
                               fontSize: d.body,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
                               color: AppColors.textPrimary,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,

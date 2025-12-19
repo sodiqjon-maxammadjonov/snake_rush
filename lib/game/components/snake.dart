@@ -1,170 +1,48 @@
-import 'dart:math';
+import 'dart:ui';
 import 'package:flame/components.dart';
-import 'package:flutter/cupertino.dart';
 import '../config/game_constants.dart';
 import 'game_map.dart';
 
-/// Ilon komponenti - Optimizatsiya qilingan
 class Snake extends PositionComponent {
-  Vector2 _direction = Vector2(1, 0);
-  double _speed = GameConstants.snakeInitialSpeed;
-  double _currentRadius = GameConstants.snakeInitialRadius;
-  bool _isAlive = true;
+  Vector2 direction = Vector2(1, 0);
+  final GameMap map;
 
-  late final Paint _headPaint;
-  late final Paint _eyePaint;
-  final GameMap _gameMap;
+  late final Paint _paint;
 
-  Snake({
-    required Vector2 position,
-    required GameMap gameMap,
-  }) : _gameMap = gameMap {
-    this.position = position;
-    anchor = Anchor.center;
-    priority = 100; // ✅ Normal priority
-    _initializePaints();
-  }
+  Snake({required this.map}) : super(anchor: Anchor.center);
 
-  void _initializePaints() {
-    _headPaint = Paint()
-      ..shader = _createGradientShader()
-      ..style = PaintingStyle.fill;
+  @override
+  Future<void> onLoad() async {
+    size = Vector2.all(GameConstants.snakeRadius * 2);
+    position = Vector2(GameConstants.startX, GameConstants.startY);
 
-    _eyePaint = Paint()
-      ..color = GameConstants.snakeEyeColor
-      ..style = PaintingStyle.fill;
-  }
-
-  Shader _createGradientShader() {
-    return LinearGradient(
-      colors: [
-        GameConstants.snakeHeadColor,
-        GameConstants.snakeBodyColor,
-      ],
-    ).createShader(
-      Rect.fromCircle(
-        center: Offset.zero,
-        radius: _currentRadius,
-      ),
-    );
-  }
-
-  // Getters
-  bool get isAlive => _isAlive;
-  double get speed => _speed;
-  double get radius => _currentRadius;
-  Vector2 get direction => _direction;
-
-  // Direction o'rnatish
-  void setDirection(Vector2 newDirection) {
-    if (newDirection.length > 0) {
-      _direction = newDirection.normalized();
-    }
-  }
-
-  // Tezlikni oshirish
-  void increaseSpeed() {
-    _speed = min(
-      _speed + GameConstants.snakeSpeedIncrement,
-      GameConstants.snakeMaxSpeed,
-    );
-  }
-
-  // O'sish
-  void grow(double amount) {
-    _currentRadius += amount;
-    size = Vector2.all(_currentRadius * 2);
-    _headPaint.shader = _createGradientShader();
-  }
-
-  // O'lim
-  void kill() {
-    _isAlive = false;
+    _paint = Paint()..color = GameConstants.snakeColor..style = PaintingStyle.fill;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    if (!_isAlive) return;
-
-    // ✅ Harakat (optimizatsiya qilingan)
-    final movement = _direction * _speed * dt;
-    position.add(movement);
-
-    // ✅ Chegara tekshiruvi
-    _checkBoundaries();
-  }
-
-  void _checkBoundaries() {
-    bool hitBoundary = false;
-
-    if (position.x - _currentRadius < 0) {
-      position.x = _currentRadius;
-      hitBoundary = true;
-    } else if (position.x + _currentRadius > _gameMap.mapSize.x) {
-      position.x = _gameMap.mapSize.x - _currentRadius;
-      hitBoundary = true;
+    if (!direction.isZero()) {
+      position += direction.normalized() * GameConstants.snakeSpeed * dt;
     }
 
-    if (position.y - _currentRadius < 0) {
-      position.y = _currentRadius;
-      hitBoundary = true;
-    } else if (position.y + _currentRadius > _gameMap.mapSize.y) {
-      position.y = _gameMap.mapSize.y - _currentRadius;
-      hitBoundary = true;
-    }
+    position.x = position.x.clamp(size.x / 2, map.width - size.x / 2);
+    position.y = position.y.clamp(size.y / 2, map.height - size.y / 2);
 
-    // Chegara bilan to'qnashganda tezlikni kamaytirish
-    if (hitBoundary) {
-      _speed = max(_speed * 0.95, GameConstants.snakeInitialSpeed);
-    }
+    angle = direction.screenAngle();
   }
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
+    canvas.drawCircle(Offset(size.x/2, size.y/2), size.x / 2, _paint);
 
-    // Ilon boshi
-    canvas.drawCircle(Offset.zero, _currentRadius, _headPaint);
-
-    // Ko'zlar
     _renderEyes(canvas);
   }
 
   void _renderEyes(Canvas canvas) {
-    final angle = atan2(_direction.y, _direction.x);
-    final eyeOffset = GameConstants.snakeEyeOffsetDistance;
-    final eyeRadius = GameConstants.snakeEyeRadius;
-    final angleOffset = GameConstants.snakeEyeAngleOffset;
-
-    // Chap ko'z
-    final leftEye = Offset(
-      eyeOffset * cos(angle + angleOffset),
-      eyeOffset * sin(angle + angleOffset),
-    );
-
-    // O'ng ko'z
-    final rightEye = Offset(
-      eyeOffset * cos(angle - angleOffset),
-      eyeOffset * sin(angle - angleOffset),
-    );
-
-    canvas.drawCircle(leftEye, eyeRadius, _eyePaint);
-    canvas.drawCircle(rightEye, eyeRadius, _eyePaint);
-  }
-
-  // Boshqaruv metodlari
-  void pause() => _isAlive = false;
-  void resume() => _isAlive = true;
-
-  void reset(Vector2 newPosition) {
-    position = newPosition;
-    _direction = Vector2(1, 0);
-    _speed = GameConstants.snakeInitialSpeed;
-    _currentRadius = GameConstants.snakeInitialRadius;
-    _isAlive = true;
-    size = Vector2.all(_currentRadius * 2);
-    _headPaint.shader = _createGradientShader();
+    final eyePaint = Paint()..color = const Color(0xFFFFFFFF);
+    canvas.drawCircle(Offset(size.x * 0.7, size.y * 0.3), 3, eyePaint);
+    canvas.drawCircle(Offset(size.x * 0.7, size.y * 0.7), 3, eyePaint);
   }
 }

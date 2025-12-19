@@ -55,9 +55,14 @@ class LanguageService extends ChangeNotifier {
     'ky': 'Кыргызча',
   };
 
+  // ✅ YANGI SO'ZLAR QO'SHILDI
   static const Map<String, Map<String, String>> _translations = {
     'en': {
       'settings': 'Settings',
+      'controls': 'Controls', // Yangi
+      'joystick_control': 'Joystick Control', // Yangi
+      'left': 'LEFT', // Yangi
+      'right': 'RIGHT', // Yangi
       'game_sound': 'Game Sound',
       'music': 'Music',
       'leaderboard': 'Leaderboard',
@@ -65,6 +70,9 @@ class LanguageService extends ChangeNotifier {
       'share_game': 'Share Game',
       'language': 'Language',
       'play': 'PLAY',
+      'paused': 'PAUSED', // Yangi
+      'resume': 'RESUME', // Yangi
+      'exit': 'EXIT', // Yangi
       'shop': 'SHOP',
       'top': 'TOP',
       'me': 'ME',
@@ -85,6 +93,10 @@ class LanguageService extends ChangeNotifier {
     },
     'uz': {
       'settings': 'Sozlamalar',
+      'controls': 'Boshqaruv', // Yangi
+      'joystick_control': 'Joystik', // Yangi
+      'left': 'CHAP', // Yangi
+      'right': "O'NG", // Yangi
       'game_sound': "O'yin ovozi",
       'music': 'Musiqa',
       'leaderboard': 'Reyting',
@@ -92,6 +104,9 @@ class LanguageService extends ChangeNotifier {
       'share_game': "O'yinni ulashish",
       'language': 'Til',
       'play': "O'YNASH",
+      'paused': 'PAUZA', // Yangi
+      'resume': 'DAVOM ETISH', // Yangi
+      'exit': 'CHIQISH', // Yangi
       'shop': 'DOKON',
       'top': 'TOP',
       'me': 'MEN',
@@ -112,6 +127,10 @@ class LanguageService extends ChangeNotifier {
     },
     'ru': {
       'settings': 'Настройки',
+      'controls': 'Управление',
+      'joystick_control': 'Джойстик',
+      'left': 'ЛЕВО',
+      'right': 'ПРАВО',
       'game_sound': 'Звук игры',
       'music': 'Музыка',
       'leaderboard': 'Рейтинг',
@@ -119,6 +138,9 @@ class LanguageService extends ChangeNotifier {
       'share_game': 'Поделиться',
       'language': 'Язык',
       'play': 'ИГРАТЬ',
+      'paused': 'ПАУЗА',
+      'resume': 'ПРОДОЛЖИТЬ',
+      'exit': 'ВЫХОД',
       'shop': 'МАГАЗИН',
       'top': 'ТОП',
       'me': 'Я',
@@ -139,6 +161,10 @@ class LanguageService extends ChangeNotifier {
     },
     'kk': {
       'settings': 'Баптаулар',
+      'controls': 'Басқару',
+      'joystick_control': 'Джойстик',
+      'left': 'СОЛ',
+      'right': 'ОҢ',
       'game_sound': 'Ойын дыбысы',
       'music': 'Музыка',
       'leaderboard': 'Рейтинг',
@@ -146,6 +172,9 @@ class LanguageService extends ChangeNotifier {
       'share_game': 'Бөлісу',
       'language': 'Тіл',
       'play': 'ОЙНАУ',
+      'paused': 'ҮЗІЛІС',
+      'resume': 'ЖАЛҒАСТЫРУ',
+      'exit': 'ШЫҒУ',
       'shop': 'ДҮКЕН',
       'top': 'ТОП',
       'me': 'МЕН',
@@ -166,6 +195,10 @@ class LanguageService extends ChangeNotifier {
     },
     'ky': {
       'settings': 'Орнотуулар',
+      'controls': 'Башкаруу',
+      'joystick_control': 'Джойстик',
+      'left': 'СОЛ',
+      'right': 'ОҢ',
       'game_sound': 'Оюн үнү',
       'music': 'Музыка',
       'leaderboard': 'Рейтинг',
@@ -173,6 +206,9 @@ class LanguageService extends ChangeNotifier {
       'share_game': 'Бөлүшүү',
       'language': 'Тил',
       'play': 'ОЙНОО',
+      'paused': 'ТЫНЫГУУ',
+      'resume': 'УЛАНТУУ',
+      'exit': 'ЧЫГУУ',
       'shop': 'ДҮКӨН',
       'top': 'ТОП',
       'me': 'МЕН',

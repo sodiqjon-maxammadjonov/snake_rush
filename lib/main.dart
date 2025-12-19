@@ -6,13 +6,13 @@ import 'package:snake_rush/utils/services/service_locator.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Screen orientation
   await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
 
-  // Initialize all services ONCE
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
   await setupServiceLocator();
 
   runApp(const SnakeRushApp());
@@ -23,10 +23,10 @@ class SnakeRushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoApp(
+    return const CupertinoApp(
       title: 'Snake Rush',
       debugShowCheckedModeBanner: false,
-      home: const MainScreen(),
+      home: MainScreen(),
     );
   }
 }

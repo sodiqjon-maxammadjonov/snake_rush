@@ -44,14 +44,13 @@ class _MyButtonState extends State<MyButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _scaleAnimation;
-  late final AudioManager _audioManager; // CACHE singleton
+  late final AudioManager _audioManager;
   bool _isPressed = false;
 
   @override
   void initState() {
     super.initState();
 
-    // Cache singleton instance
     _audioManager = getIt<AudioManager>();
 
     _controller = AnimationController(
@@ -98,7 +97,7 @@ class _MyButtonState extends State<MyButton>
     if (widget.onPressed == null) return;
 
     if (widget.playSound) {
-      _audioManager.playButtonClick(); // Use cached instance
+      _audioManager.playButtonClick();
     }
     widget.onPressed!();
   }
