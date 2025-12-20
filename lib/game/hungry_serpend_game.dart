@@ -1,6 +1,6 @@
+import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-import 'package:flame/game.dart';
 import 'package:flame/experimental.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:snake_rush/utils/services/storage/storage_service.dart';
@@ -18,12 +18,9 @@ class HungrySnakeGame extends FlameGame with PanDetector {
   late MiniMap _miniMap;
 
   GameJoystick? _joystick;
-
   bool _isResourcesLoaded = false;
   bool _useJoystick = true;
   String _side = 'left';
-
-  Vector2 _touchDirection = Vector2.zero();
 
   @override
   Future<void> onLoad() async {
@@ -31,21 +28,64 @@ class HungrySnakeGame extends FlameGame with PanDetector {
     _useJoystick = storage.joystickEnabled;
     _side = storage.joystickSide;
 
+    // 1. Dunyoni sozlash
     _gameMap = GameMap();
     await world.add(_gameMap);
 
     _snake = Snake(map: _gameMap);
     await world.add(_snake);
 
+    // 2. Kamerani ilonga bog'lash
     camera.setBounds(
       Rectangle.fromLTWH(0, 0, GameConstants.mapWidth, GameConstants.mapHeight),
     );
     camera.follow(_snake);
     camera.viewfinder.zoom = GameConstants.cameraZoom;
 
+    // 3. UI va Joystick
     _setupJoystickAndUI();
     _isResourcesLoaded = true;
   }
+
+  void _setupJoystickAndUI() {
+    _joystick?.removeFromParent();
+
+    if (_useJoystick) {
+      final margin = _side == 'left'
+          ? const EdgeInsets.only(left: 40, bottom: 40)
+          : const EdgeInsets.only(right: 40, bottom: 40);
+
+      _joystick = GameJoystick(margin: margin);
+      camera.viewport.add(_joystick!);
+    }
+
+    // MiniMapni viewportga qo'shamiz (ekran siljisa ham o'rnida turishi uchun)
+    _miniMap = MiniMap(player: _snake);
+    camera.viewport.add(_miniMap);
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (_useJoystick && _joystick != null) {
+      if (_joystick!.direction != JoystickDirection.idle) {
+        // ILONNING YO'NALISHINI EMAS, NISHONINI BELGILAYMIZ
+        _snake.targetDirection = _joystick!.relativeDelta;
+      }
+    }
+  }
+
+  @override
+  void onPanUpdate(DragUpdateInfo info) {
+    if (_useJoystick) return;
+
+    // Joystick yo'q bo'lganda ekran bo'ylab surish orqali boshqarish
+    if (info.delta.global.length2 > 0) {
+      _snake.targetDirection = info.delta.global.normalized();
+    }
+  }
+
   @override
   void render(Canvas canvas) {
     if (!_isResourcesLoaded) {
@@ -59,81 +99,15 @@ class HungrySnakeGame extends FlameGame with PanDetector {
     final textPainter = TextPaint(
       style: const TextStyle(color: CupertinoColors.white, fontSize: 24),
     );
-    textPainter.render(canvas, "LOADING...", Vector2(size.x/2 - 50, size.y/2));
-  }
-
-  void _setupJoystickAndUI() {
-    if (_joystick != null) {
-      if (_joystick!.parent != null) {
-        _joystick!.removeFromParent();
-      }
-      _joystick = null;
-    }
-
-    if (_useJoystick) {
-      EdgeInsets margin;
-
-      if (_side == 'left') {
-        margin = const EdgeInsets.only(left: 40, bottom: 40);
-      } else {
-        margin = const EdgeInsets.only(right: 40, bottom: 40);
-      }
-
-      _joystick = GameJoystick(margin: margin);
-      camera.viewport.add(_joystick!);
-    }
-
-   try {
-      bool miniMapExists = camera.viewport.children.any((c) => c is MiniMap);
-      if (!miniMapExists) {
-        _miniMap = MiniMap(player: _snake);
-        camera.viewport.add(_miniMap);
-      }
-    } catch(e) {
-      // ignore initialization error if first run
-    }
+    textPainter.render(canvas, "LOADING...", Vector2(size.x/2 - 60, size.y/2));
   }
 
   void updateSettings() {
     final storage = getIt<StorageService>();
-    bool newUse = storage.joystickEnabled;
-    String newSide = storage.joystickSide;
-
-    if (newUse != _useJoystick || newSide != _side) {
-      _useJoystick = newUse;
-      _side = newSide;
+    if (storage.joystickEnabled != _useJoystick || storage.joystickSide != _side) {
+      _useJoystick = storage.joystickEnabled;
+      _side = storage.joystickSide;
       _setupJoystickAndUI();
     }
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-
-    if (_useJoystick && _joystick != null) {
-      if (_joystick!.direction != JoystickDirection.idle) {
-        _snake.direction = _joystick!.relativeDelta;
-      }
-    }
-    else {
-      if (!_touchDirection.isZero()) {
-        _snake.direction = _touchDirection;
-      }
-    }
-  }
-
-
-  @override
-  void onPanUpdate(DragUpdateInfo info) {
-    if (_useJoystick) return;
-
-    if (info.delta.global.length2 > 0) {
-      _touchDirection = info.delta.global.normalized();
-    }
-  }
-
-  @override
-  void onPanEnd(DragEndInfo info) {
-    //just swim
   }
 }

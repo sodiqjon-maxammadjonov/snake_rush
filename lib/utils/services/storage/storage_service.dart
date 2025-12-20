@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // ValueNotifier uchun kerak
 import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
@@ -11,16 +12,22 @@ class StorageService {
   static const String _keyJoystickEnabled = 'joystick_enabled';
   static const String _keyJoystickSide = 'joystick_side';
   static const String _keySelectedSkin = 'selected_skin';
-
+  static const String _keyUserCoins = 'user_coins';
 
   SharedPreferences? _prefs;
 
+  // ✅ BU YANGILIK: Coin o'zgarishini kuzatish uchun maxsus notifier
+  final ValueNotifier<int> coinsNotifier = ValueNotifier<int>(0);
+
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    // ✅ Dastlabki qiymatni notifierga o'rnatamiz
+    coinsNotifier.value = userCoins;
   }
 
-  Future<void> setSelectedSkin(String value) => setString(_keySelectedSkin, value);
-  String get selectedSkin => getString(_keySelectedSkin, 'classic');
+  // --- MAVJUD GETTERLAR VA SETTERLAR (O'zgartirilmagan) ---
+  Future<bool> setSelectedSkin(String value) => setString(_keySelectedSkin, value);
+  String get selectedSkin => getString(_keySelectedSkin, 'python');
 
   Future<bool> setDouble(String key, double value) async => await _prefs?.setDouble(key, value) ?? false;
   double getDouble(String key, double defaultValue) => _prefs?.getDouble(key) ?? defaultValue;
@@ -48,4 +55,29 @@ class StorageService {
 
   String get joystickSide => getString(_keyJoystickSide, 'left');
   Future<void> setJoystickSide(String value) => setString(_keyJoystickSide, value);
+
+  // --- ✅ COIN METODLARINING OPTIMALLASHGAN VERSIYASI ---
+
+  int get userCoins => getInt(_keyUserCoins, 0);
+
+  //setUserCoins ni o'zi notifierni yangilaydigan qildik
+  Future<void> setUserCoins(int value) async {
+    await setInt(_keyUserCoins, value);
+    coinsNotifier.value = value; // ✅ Bu yerda CoinWidget o'zgarishni sezadi!
+  }
+
+  // Coin qo'shish (Eski metod endi setUserCoins orqali oson ishlaydi)
+  Future<void> addCoins(int amount) async {
+    await setUserCoins(userCoins + amount);
+  }
+
+  // Coin ayirish (xarid qilishda)
+  Future<bool> spendCoins(int amount) async {
+    final current = userCoins;
+    if (current >= amount) {
+      await setUserCoins(current - amount);
+      return true;
+    }
+    return false;
+  }
 }
