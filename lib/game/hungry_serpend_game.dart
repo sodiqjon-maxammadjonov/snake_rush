@@ -1,116 +1,296 @@
+import 'dart:math' as dart_math;
+
 import 'package:flame/game.dart';
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
-// MUHIM: Rectangle klassi mana shu experimental paket ichida
-import 'package:flame/experimental.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:snake_rush/utils/services/storage/storage_service.dart';
-import '../utils/services/service_locator.dart';
 
 import 'config/game_constants.dart';
-import 'components/game_map.dart';
-import 'components/snake.dart';
-import 'components/game_joystick.dart';
-import 'components/mini_map.dart';
-import 'components/food_manager.dart';
-import 'components/score_display.dart'; // Buni ham qo'shdik
+import 'core/game_state.dart';
+import 'world/game_map.dart';
+import 'entities/snake/snake.dart';
+import 'entities/food/food_manager.dart';
+import 'entities/powerup/powerup_manager.dart';
+import 'entities/bot/bot_snake.dart';
+import 'ui/components/game_joystick.dart';
+import 'ui/components/mini_map.dart';
+import 'ui/components/score_display.dart';
+import 'managers/camera_manager.dart';
+import 'managers/collision_manager.dart';
+import 'vfx/particle_system.dart';
+import 'audio/sound_manager.dart';
+import '../utils/services/service_locator.dart';
+import '../utils/services/storage/storage_service.dart';
 
 class HungrySnakeGame extends FlameGame with PanDetector {
+  late final GameState gameState;
+  late final SoundManager soundManager;
+  late final ParticleSystem particleSystem;
+
   late GameMap _gameMap;
-  late Snake _snake;
+  late Snake _playerSnake;
   late FoodManager _foodManager;
+  late PowerUpManager _powerUpManager;
+  late CollisionManager _collisionManager;
+  late CameraManager _cameraManager;
+
+  final List<BotSnake> _bots = [];
+  final int _maxBots = 10;
+
   late MiniMap _miniMap;
   late ScoreDisplay _scoreDisplay;
-
   GameJoystick? _joystick;
+
+  late final StorageService _storage;
   bool _useJoystick = true;
-  String _side = 'left';
+  String _joystickSide = 'left';
+
+  Function()? onGameOver;
 
   @override
   Future<void> onLoad() async {
-    final storage = getIt<StorageService>();
-    _useJoystick = storage.joystickEnabled;
-    _side = storage.joystickSide;
+    await _initializeSystems();
+    await _loadSettings();
+    await _initializeWorld();
+    await _initializeUI();
+    await _spawnBots();
 
-    // 1. Dunyoni (Map) sozlash
+    gameState.startGame();
+  }
+
+  Future<void> _initializeSystems() async {
+    gameState = GameState();
+    soundManager = SoundManager();
+    await soundManager.initialize();
+
+    particleSystem = ParticleSystem();
+    await world.add(particleSystem);
+  }
+
+  Future<void> _loadSettings() async {
+    _storage = getIt<StorageService>();
+    _useJoystick = _storage.joystickEnabled;
+    _joystickSide = _storage.joystickSide;
+  }
+
+  Future<void> _initializeWorld() async {
     _gameMap = GameMap();
     await world.add(_gameMap);
 
-    // 2. Managerlarni sozlash
-    _foodManager = FoodManager(map: _gameMap);
+    _collisionManager = CollisionManager();
+    _collisionManager.onSnakeCollision = _handleSnakeCollision;
+    _collisionManager.onFoodCollision = _handleFoodCollision;
+    await world.add(_collisionManager);
+
+    _foodManager = FoodManager(map: _gameMap, collisionManager: _collisionManager);
+    _foodManager.onFoodEaten = (points) {
+      gameState.incrementFoodEaten();
+      soundManager.playFoodEat();
+    };
     await world.add(_foodManager);
 
-    // 3. Snake (Ilon)
-    _snake = Snake(map: _gameMap, foodManager: _foodManager);
-    await world.add(_snake);
+    _powerUpManager = PowerUpManager(map: _gameMap);
+    _powerUpManager.onPowerUpCollected = _handlePowerUpCollected;
+    await world.add(_powerUpManager);
 
-    // 4. Camera Setup
-    // TO'G'IRLANDI: Rectangle.fromLTWH ishlatish uchun Flame'ning experimental kutubxonasi kuchi ishlatiladi
-    camera.setBounds(
-      Rectangle.fromLTWH(0, 0, GameConstants.mapWidth, GameConstants.mapHeight),
+    _playerSnake = Snake(
+      map: _gameMap,
+      foodManager: _foodManager,
+      isPlayer: true,
     );
+    await world.add(_playerSnake);
+    _collisionManager.registerSnake(_playerSnake);
 
-    camera.follow(_snake);
-    // GameConstants'da bu qiymat baseCameraZoom deb nomlangan bo'lishi kerak
-    camera.viewfinder.zoom = GameConstants.baseCameraZoom;
-
-    _setupUI();
+    _cameraManager = CameraManager(camera);
+    _cameraManager.setupBounds();
+    _cameraManager.followTarget(_playerSnake);
+    _cameraManager.setInitialZoom();
   }
 
-  void _setupUI() {
-    // Eskilarini tozalash (updateSettings chaqirilganda kerak bo'ladi)
-    _joystick?.removeFromParent();
-
-    // Joystickni viewportga qo'shish
+  Future<void> _initializeUI() async {
     if (_useJoystick) {
-      final margin = _side == 'left'
-          ? const EdgeInsets.only(left: 45, bottom: 45)
-          : const EdgeInsets.only(right: 45, bottom: 45);
-
-      _joystick = GameJoystick(margin: margin);
-      camera.viewport.add(_joystick!);
+      _createJoystick();
     }
 
-    // MiniMapni viewportga qo'shish (Ilon bilan birga yurishi uchun emas, ekranda turishi uchun)
-    _miniMap = MiniMap(player: _snake);
+    _miniMap = MiniMap(player: _playerSnake);
     camera.viewport.add(_miniMap);
 
-    // ScoreDisplay (Statistika va Leaderboard)ni qo'shish
-    _scoreDisplay = ScoreDisplay(player: _snake);
+    _scoreDisplay = ScoreDisplay(player: _playerSnake);
     camera.viewport.add(_scoreDisplay);
+  }
+
+  void _createJoystick() {
+    final margin = _joystickSide == 'left'
+        ? const EdgeInsets.only(left: 45, bottom: 45)
+        : const EdgeInsets.only(right: 45, bottom: 45);
+
+    _joystick = GameJoystick(margin: margin);
+    camera.viewport.add(_joystick!);
+  }
+
+  Future<void> _spawnBots() async {
+    for (int i = 0; i < _maxBots; i++) {
+      await _spawnBot();
+    }
+  }
+
+  Future<void> _spawnBot() async {
+    final bot = BotSnake(
+      map: _gameMap,
+      foodManager: _foodManager,
+      collisionManager: _collisionManager,
+      difficulty: _getRandomDifficulty(),
+    );
+
+    await world.add(bot);
+    _bots.add(bot);
+    _collisionManager.registerSnake(bot);
+  }
+
+  BotDifficulty _getRandomDifficulty() {
+    final rand = dart_math.Random().nextDouble();
+    if (rand < 0.5) return BotDifficulty.easy;
+    if (rand < 0.85) return BotDifficulty.medium;
+    return BotDifficulty.hard;
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    // Joystick harakatini boshqarish
-    if (_useJoystick && _joystick != null && _joystick!.direction != JoystickDirection.idle) {
-      _snake.targetDirection = _joystick!.relativeDelta;
+    if (!gameState.isPlaying) return;
+
+    if (_useJoystick &&
+        _joystick != null &&
+        _joystick!.direction != JoystickDirection.idle) {
+      _playerSnake.targetDirection = _joystick!.relativeDelta;
+    }
+
+    _powerUpManager.checkPowerUpCollisions(_playerSnake, dt);
+
+    gameState.updatePlayTime(dt);
+    gameState.updateMaxLength(_playerSnake.currentLength);
+
+    _respawnBotsIfNeeded();
+  }
+
+  void _respawnBotsIfNeeded() {
+    if (_bots.length < _maxBots) {
     }
   }
 
   @override
   void onPanUpdate(DragUpdateInfo info) {
-    // Agar joystick o'chirilgan bo'lsa, ekran surish orqali boshqarish
-    if (!_useJoystick) {
-      _snake.targetDirection = info.delta.global.normalized();
+    if (!_useJoystick && gameState.isPlaying) {
+      _playerSnake.targetDirection = info.delta.global.normalized();
     }
+  }
+
+  void _handleSnakeCollision(Snake attacker, Snake victim) {
+    particleSystem.spawnDeathEffect(
+      victim.position,
+      victim.currentRadius,
+      const Color(0xFFFF5722),
+    );
+
+    soundManager.playKill();
+
+    if (attacker == _playerSnake) {
+      gameState.incrementKills();
+    }
+
+    if (victim == _playerSnake) {
+      _handlePlayerDeath();
+    } else if (victim is BotSnake) {
+      _spawnFoodAtPosition(victim.position, victim.totalScore);
+      _bots.remove(victim);
+      _collisionManager.unregisterSnake(victim);
+    }
+  }
+
+  void _spawnFoodAtPosition(Vector2 position, int scoreAmount) {
+    final foodCount = (scoreAmount / 10).clamp(5, 50).toInt();
+    _foodManager.spawnFoodCluster(position, foodCount);
+  }
+
+  void _handleFoodCollision(Snake snake, food) {
+    particleSystem.spawnFoodEatEffect(
+      food.position,
+      food.type.color,
+    );
+  }
+
+  void _handlePowerUpCollected(Snake snake, type) {
+    particleSystem.spawnPowerUpEffect(
+      snake.position,
+      type.color,
+    );
+
+    soundManager.playPowerUp();
+  }
+
+  void _handlePlayerDeath() {
+    gameState.endGame(
+      finalScore: _playerSnake.totalScore,
+      finalLength: _playerSnake.currentLength,
+    );
+
+    soundManager.playDeath();
+
+    onGameOver?.call();
   }
 
   void updateSettings() {
-    // Sozlamalar o'zgarganda UI'ni qayta yuklash
-    final storage = getIt<StorageService>();
-    if (storage.joystickEnabled != _useJoystick || storage.joystickSide != _side) {
-      _useJoystick = storage.joystickEnabled;
-      _side = storage.joystickSide;
+    final newJoystickState = _storage.joystickEnabled;
+    final newSide = _storage.joystickSide;
 
-      // Viewportdagi eski UI elementlarini o'chirib, qayta qo'shish
-      camera.viewport.children.whereType<GameJoystick>().forEach((c) => c.removeFromParent());
-      camera.viewport.children.whereType<MiniMap>().forEach((c) => c.removeFromParent());
-      camera.viewport.children.whereType<ScoreDisplay>().forEach((c) => c.removeFromParent());
+    if (newJoystickState != _useJoystick || newSide != _joystickSide) {
+      _useJoystick = newJoystickState;
+      _joystickSide = newSide;
 
-      _setupUI();
+      _clearUI();
+      _initializeUI();
     }
   }
+
+  void _clearUI() {
+    camera.viewport.children
+        .whereType<GameJoystick>()
+        .forEach((c) => c.removeFromParent());
+    camera.viewport.children
+        .whereType<MiniMap>()
+        .forEach((c) => c.removeFromParent());
+    camera.viewport.children
+        .whereType<ScoreDisplay>()
+        .forEach((c) => c.removeFromParent());
+  }
+
+  void restart() {
+    _playerSnake.removeFromParent();
+    for (final bot in _bots) {
+      bot.removeFromParent();
+    }
+    _bots.clear();
+
+    _foodManager.clearAll();
+    _powerUpManager.clearAll();
+    _collisionManager.clear();
+    particleSystem.clear();
+
+    onLoad();
+  }
+
+  void revivePlayer() {
+    _playerSnake.position = Vector2(
+      GameConstants.mapWidth / 2,
+      GameConstants.mapHeight / 2,
+    );
+
+    gameState.startGame();
+  }
+
+  Snake get playerSnake => _playerSnake;
+  FoodManager get foodManager => _foodManager;
+  PowerUpManager get powerUpManager => _powerUpManager;
+  List<BotSnake> get bots => List.unmodifiable(_bots);
 }

@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
+/// O'yin joystick komponenti
 class GameJoystick extends JoystickComponent {
   GameJoystick({required EdgeInsets margin})
       : super(
@@ -15,4 +16,10 @@ class GameJoystick extends JoystickComponent {
     margin: margin,
     priority: 10,
   );
+
+  /// Joystick yo'nalishini olish
+  Vector2 get inputDirection => relativeDelta;
+
+  /// Joystick faolmi?
+  bool get isActive => direction != JoystickDirection.idle;
 }

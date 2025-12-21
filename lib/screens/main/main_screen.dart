@@ -3,7 +3,7 @@ import 'package:snake_rush/screens/other/skin/skins_screen.dart';
 import 'package:snake_rush/utils/const_widgets/my_text.dart';
 import 'package:snake_rush/utils/widgets/coin_widget.dart';
 import 'package:snake_rush/utils/widgets/my_button.dart';
-import '../../game/screen/game_loading screen.dart';
+import '../../game/gameplay_screen.dart';
 import '../../utils/const_widgets/game_background.dart';
 import '../../utils/navigator/morph_navigator.dart';
 import '../../utils/services/language/language_service.dart';
