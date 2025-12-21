@@ -2,6 +2,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart'; // ✅ Qo'shdik
 import '../../utils/navigator/morph_navigator.dart';
 import '../../utils/widgets/my_button.dart';
 import '../../utils/const_widgets/my_text.dart';
@@ -77,10 +78,17 @@ class _GamePlayScreenState extends State<GamePlayScreen> with SingleTickerProvid
 
   String _tr(String key) => _languageService.translate(key);
 
+  // ✅ TO'G'RILANGAN: build() paytida setState() chaqirilmaydi
   void _showGameOver() {
     _audioManager.playGameOverSound();
-    setState(() => _isGameOver = true);
-    _gameOverController.forward();
+
+    // setState() ni keyingi frame'ga ko'chirish
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() => _isGameOver = true);
+        _gameOverController.forward();
+      }
+    });
   }
 
   void _onPausePressed() {

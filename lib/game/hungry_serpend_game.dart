@@ -176,6 +176,7 @@ class HungrySnakeGame extends FlameGame with PanDetector {
 
   void _respawnBotsIfNeeded() {
     if (_bots.length < _maxBots) {
+      // TODO: Bot respawn logic
     }
   }
 
@@ -186,25 +187,33 @@ class HungrySnakeGame extends FlameGame with PanDetector {
     }
   }
 
-  void _handleSnakeCollision(Snake attacker, Snake victim) {
+  // ✅ TO'G'RILANGAN: Parameter nomlari to'g'ri
+  void _handleSnakeCollision(Snake winner, Snake loser) {
+    // Particle effect - o'lgan ilonda
     particleSystem.spawnDeathEffect(
-      victim.position,
-      victim.currentRadius,
+      loser.position,
+      loser.currentRadius,
       const Color(0xFFFF5722),
     );
 
     soundManager.playKill();
 
-    if (attacker == _playerSnake) {
+    // Agar g'olib player bo'lsa, kill statistikasini oshirish
+    if (winner == _playerSnake) {
       gameState.incrementKills();
     }
 
-    if (victim == _playerSnake) {
+    // Agar player o'lgan bo'lsa
+    if (loser == _playerSnake) {
       _handlePlayerDeath();
-    } else if (victim is BotSnake) {
-      _spawnFoodAtPosition(victim.position, victim.totalScore);
-      _bots.remove(victim);
-      _collisionManager.unregisterSnake(victim);
+      return; // ✅ Muhim: keyingi kodlar ishlamasligi uchun
+    }
+
+    // Agar bot o'lgan bo'lsa
+    if (loser is BotSnake) {
+      _spawnFoodAtPosition(loser.position, loser.totalScore);
+      _bots.remove(loser);
+      _collisionManager.unregisterSnake(loser);
     }
   }
 

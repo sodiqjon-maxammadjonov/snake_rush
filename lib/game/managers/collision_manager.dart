@@ -74,26 +74,62 @@ class CollisionManager extends Component {
 
   void _checkSnakeToSnakeCollisions() {
     final snakesCopy = List<Snake>.from(_snakes);
+    final collisionPairs = <_CollisionPair>[];
 
+    // Birinchi o'tish: Barcha collisionlarni topish
     for (final snake in snakesCopy) {
+      if (!_snakes.contains(snake)) continue;
+
       final nearbySnakes = _getNeighboringSnakes(snake.position);
 
       for (final other in nearbySnakes) {
         if (snake == other) continue;
         if (!_snakes.contains(snake) || !_snakes.contains(other)) continue;
 
+        // snake boshi bilan other tanasiga urildi
         if (_checkHeadToBodyCollision(snake, other)) {
-          _handleSnakeCollision(snake, other);
-        }
-
-        if (_checkHeadToHeadCollision(snake, other)) {
-          _handleHeadToHeadCollision(snake, other);
+          collisionPairs.add(_CollisionPair(
+            attacker: snake,
+            victim: other,
+          ));
         }
       }
 
+      // O'z-o'ziga urilish
       if (_snakes.contains(snake) && _checkSelfCollision(snake)) {
         _handleSelfCollision(snake);
       }
+    }
+
+    // Ikkinchi o'tish: Collisionlarni hal qilish
+    _resolveCollisions(collisionPairs);
+  }
+
+  /// Collisionlarni to'g'ri tartibda hal qilish
+  void _resolveCollisions(List<_CollisionPair> pairs) {
+    final processedSnakes = <Snake>{};
+
+    for (final pair in pairs) {
+      // Agar bu ilon allaqachon o'lgan bo'lsa, o'tkazib yuborish
+      if (processedSnakes.contains(pair.attacker) ||
+          processedSnakes.contains(pair.victim)) {
+        continue;
+      }
+
+      // Agar ikkalasi ham bir-biriga urilgan bo'lsa
+      final reverseCollision = pairs.any((p) =>
+      p.attacker == pair.victim && p.victim == pair.attacker);
+
+      if (reverseCollision) {
+        // Ikki tomonlama collision - hech kim o'lmaydi
+        // (bosh bilan bosh kabi)
+        continue;
+      }
+
+      // Normal collision - boshi bilan urgan o'ladi
+      _handleCollision(winner: pair.victim, loser: pair.attacker);
+      processedSnakes.add(pair.attacker);
+      processedSnakes.add(pair.victim);
     }
   }
 
@@ -115,12 +151,17 @@ class CollisionManager extends Component {
     }
   }
 
+  /// Bosh bilan tanaga urilishni tekshirish
+  /// attacker - kim hujum qilmoqda (boshi bilan) - BU O'LADI!
+  /// victim - kimning tanasiga urilmoqda - BU YUTADI!
   bool _checkHeadToBodyCollision(Snake attacker, Snake victim) {
     final headPos = attacker.position;
     final headRadius = attacker.currentRadius;
 
     final segments = victim.segmentPositions;
 
+    // Qurbonning tanasini tekshiramiz
+    // Birinchi 5 segmentni o'tkazib yuboramiz (bu bosh qismi)
     for (int i = 5; i < segments.length; i += 2) {
       final segmentPos = segments[i];
       final distance = headPos.distanceTo(segmentPos);
@@ -131,30 +172,6 @@ class CollisionManager extends Component {
     }
 
     return false;
-  }
-
-  bool _checkHeadToHeadCollision(Snake snake1, Snake snake2) {
-    final distance = snake1.position.distanceTo(snake2.position);
-    return distance < (snake1.currentRadius + snake2.currentRadius);
-  }
-
-  void _handleHeadToHeadCollision(Snake snake1, Snake snake2) {
-    Snake winner, loser;
-
-    if (snake1.currentRadius > snake2.currentRadius) {
-      winner = snake1;
-      loser = snake2;
-    } else {
-      winner = snake2;
-      loser = snake1;
-    }
-
-    onSnakeCollision?.call(winner, loser);
-
-    loser.removeFromParent();
-    unregisterSnake(loser);
-
-    winner.grow(loser.totalScore ~/ 2);
   }
 
   bool _checkSelfCollision(Snake snake) {
@@ -186,15 +203,22 @@ class CollisionManager extends Component {
     return distance < (radius1 + radius2);
   }
 
-  void _handleSnakeCollision(Snake attacker, Snake victim) {
-    if (attacker.currentRadius > victim.currentRadius * 1.2) {
-      onSnakeCollision?.call(attacker, victim);
+  /// ✅ TO'G'RI COLLISION HANDLER
+  /// winner - g'olib (kimning TANASIGA urilgan)
+  /// loser - mag'lub (kim BOSHI bilan urgan)
+  void _handleCollision({
+    required Snake winner,
+    required Snake loser,
+  }) {
+    // Callback chaqirish
+    onSnakeCollision?.call(winner, loser);
 
-      victim.removeFromParent();
-      unregisterSnake(victim);
+    // Boshi bilan urgan ilon O'LADI
+    loser.removeFromParent();
+    unregisterSnake(loser);
 
-      attacker.grow(victim.totalScore ~/ 2);
-    }
+    // Tanasiga urilgan ilon YUTADI va ochko oladi
+    winner.grow(loser.totalScore ~/ 2);
   }
 
   void _handleSelfCollision(Snake snake) {
@@ -234,4 +258,15 @@ class CollisionManager extends Component {
     _foods.clear();
     _snakeGrid.clear();
   }
+}
+
+/// Collision juftligini saqlash uchun helper class
+class _CollisionPair {
+  final Snake attacker; // Kim boshi bilan urdi
+  final Snake victim;   // Kimning tanasiga urildi
+
+  _CollisionPair({
+    required this.attacker,
+    required this.victim,
+  });
 }

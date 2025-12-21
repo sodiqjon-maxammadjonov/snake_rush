@@ -18,8 +18,9 @@ class BotSnake extends Snake {
   Vector2? _targetFood;
   Snake? _targetEnemy;
   bool _isEvading = false;
-  bool _isCircling = false;
-  double _circleAngle = 0.0;
+  bool _isTrapping = false; // Yangi: tuzoq qurish rejimi
+  double _trapAngle = 0.0;
+  Vector2? _trapCenter;
 
   BotSnake({
     required super.map,
@@ -75,30 +76,36 @@ class BotSnake extends Snake {
       currentRadius * 10,
     );
 
+    // 1. XAVFLI DUSHMAN - qoch!
     final dangerousEnemy = _findDangerousEnemy(nearbyEnemies);
     if (dangerousEnemy != null) {
       _evadeEnemy(dangerousEnemy);
       return;
     }
 
+    // 2. KUCHSIZ DUSHMAN - tuzoq qur!
     final weakEnemy = _findWeakEnemy(nearbyEnemies);
     if (weakEnemy != null && _shouldAttack(weakEnemy)) {
-      _huntEnemy(weakEnemy);
+      _trapEnemy(weakEnemy); // ✅ O'zgarish: to'g'ridan-to'g'ri hujum emas!
       return;
     }
 
+    // 3. OVQAT YIG'ISH
     _seekFood();
   }
 
   void _updateBoostBehavior() {
+    // Boost faqat qochishda va tuzoq qurishda ishlatiladi
     if (difficulty == BotDifficulty.hard && boostEnergy > 60) {
-      if (_targetEnemy != null && !_isEvading) {
-        setBoost(true);
+      if (_isEvading) {
+        setBoost(true); // Qochishda boost
+      } else if (_isTrapping && _targetEnemy != null) {
+        setBoost(true); // Tuzoq qurishda boost
       } else {
         setBoost(false);
       }
     } else if (difficulty == BotDifficulty.medium && boostEnergy > 80) {
-      if (_isEvading && math.Random().nextDouble() < 0.3) {
+      if (_isEvading) {
         setBoost(true);
       } else {
         setBoost(false);
@@ -108,24 +115,73 @@ class BotSnake extends Snake {
     }
   }
 
-  void _seekFood() {
+  // ==================== YANGI: TUZOQ QURISH ====================
+
+  /// Dushmanni tuzoqqa tushirish strategiyasi
+  void _trapEnemy(Snake enemy) {
     _isEvading = false;
-    _isCircling = false;
+    _isTrapping = true;
+    _targetEnemy = enemy;
 
-    final foodInRange = _findNearestFood();
+    final toEnemy = enemy.position - position;
+    final distance = toEnemy.length;
 
-    if (foodInRange != null) {
-      _targetFood = foodInRange;
-      final direction = (foodInRange - position).normalized();
-      targetDirection = _avoidWalls(direction);
+    // Agar yetarlicha yaqin bo'lsa, aylana chizish
+    if (distance < currentRadius * 8) {
+      _circleAroundEnemy(enemy);
     } else {
-      _wanderSmart();
+      // Uzoqdan yaqinlashish
+      _approachFromSide(enemy);
     }
   }
 
+  /// Dushman atrofida aylana chizish (tuzoq)
+  void _circleAroundEnemy(Snake enemy) {
+    // Dushman oldinga harakat qilayotgan yo'nalishini bashorat qilish
+    final enemyFuturePos = enemy.position + (enemy.direction * currentRadius * 3);
+
+    // Bot dushman oldida turishi kerak
+    _trapAngle += difficulty.trapSpeed; // Aylana tezligi
+
+    final circleRadius = currentRadius * 5; // Tuzoq radiusi
+    final targetX = enemyFuturePos.x + math.cos(_trapAngle) * circleRadius;
+    final targetY = enemyFuturePos.y + math.sin(_trapAngle) * circleRadius;
+
+    final targetPos = Vector2(targetX, targetY);
+    targetDirection = (targetPos - position).normalized();
+
+    // Agar dushman juda yaqin kelsa, tanani oldinga cho'zish
+    final distanceToEnemy = position.distanceTo(enemy.position);
+    if (distanceToEnemy < currentRadius * 3) {
+      // Dushmanni o'z tanasiga urilishga majburlash
+      final blockDirection = (enemy.position - position).normalized();
+      final perpendicular = Vector2(-blockDirection.y, blockDirection.x);
+
+      // Dushman yo'lini to'sish
+      targetDirection = perpendicular;
+    }
+  }
+
+  /// Yon tomondan yaqinlashish
+  void _approachFromSide(Snake enemy) {
+    // Dushman yo'nalishini bashorat qilish
+    final enemyDirection = enemy.direction;
+
+    // Yon tomonga harakat qilish (dushman boshiga emas!)
+    final perpendicular = Vector2(-enemyDirection.y, enemyDirection.x);
+
+    // Dushmanning yon tomoniga borish
+    final sidePosition = enemy.position + (perpendicular * currentRadius * 5);
+
+    targetDirection = (sidePosition - position).normalized();
+    targetDirection = _avoidWalls(targetDirection);
+  }
+
+  // ==================== QOCHISH (o'zgarishsiz) ====================
+
   void _evadeEnemy(Snake enemy) {
     _isEvading = true;
-    _isCircling = false;
+    _isTrapping = false;
     _targetEnemy = enemy;
 
     Vector2 escapeDirection = (position - enemy.position).normalized();
@@ -140,44 +196,21 @@ class BotSnake extends Snake {
     targetDirection = _avoidWalls(escapeDirection.normalized());
   }
 
-  void _huntEnemy(Snake enemy) {
+  // ==================== OVQAT YIGISH ====================
+
+  void _seekFood() {
     _isEvading = false;
-    _targetEnemy = enemy;
+    _isTrapping = false;
 
-    if (difficulty == BotDifficulty.hard) {
-      _circleAndAttack(enemy);
+    final foodInRange = _findNearestFood();
+
+    if (foodInRange != null) {
+      _targetFood = foodInRange;
+      final direction = (foodInRange - position).normalized();
+      targetDirection = _avoidWalls(direction);
     } else {
-      _directChase(enemy);
+      _wanderSmart();
     }
-  }
-
-  void _circleAndAttack(Snake enemy) {
-    _isCircling = true;
-
-    final toEnemy = enemy.position - position;
-    final distance = toEnemy.length;
-
-    if (distance < currentRadius * 5) {
-      _circleAngle += 0.05;
-
-      final circleRadius = currentRadius * 4;
-      final circleX = enemy.position.x + math.cos(_circleAngle) * circleRadius;
-      final circleY = enemy.position.y + math.sin(_circleAngle) * circleRadius;
-
-      final circleTarget = Vector2(circleX, circleY);
-      targetDirection = (circleTarget - position).normalized();
-    } else {
-      _directChase(enemy);
-    }
-  }
-
-  void _directChase(Snake enemy) {
-    _isCircling = false;
-
-    Vector2 predictedPos = enemy.position + (enemy.direction * currentRadius * 2);
-
-    final chaseDirection = (predictedPos - position).normalized();
-    targetDirection = _avoidWalls(chaseDirection);
   }
 
   void _wanderSmart() {
@@ -198,9 +231,12 @@ class BotSnake extends Snake {
     }
   }
 
+  // ==================== DUSHMAN TOPISH ====================
+
   Snake? _findDangerousEnemy(List<Snake> enemies) {
     for (final enemy in enemies) {
-      if (enemy.currentRadius > currentRadius * 1.4) {
+      // Agar dushman bizdan 50% katta bo'lsa - xavfli!
+      if (enemy.currentRadius > currentRadius * 1.5) {
         return enemy;
       }
     }
@@ -212,6 +248,7 @@ class BotSnake extends Snake {
     double minRadius = double.infinity;
 
     for (final enemy in enemies) {
+      // Faqat bizdan 40% kichik dushmanlarga hujum qilamiz
       if (enemy.currentRadius < currentRadius * 0.6 &&
           enemy.currentRadius < minRadius) {
         weakest = enemy;
@@ -223,7 +260,8 @@ class BotSnake extends Snake {
   }
 
   bool _shouldAttack(Snake enemy) {
-    if (currentRadius < enemy.currentRadius * 1.3) return false;
+    // Agar biz dushmandan kamida 40% katta bo'lsak, hujum qilamiz
+    if (currentRadius < enemy.currentRadius * 1.4) return false;
 
     final attackChance = difficulty.attackProbability;
     return math.Random().nextDouble() < attackChance;
@@ -262,25 +300,30 @@ enum BotDifficulty {
     reactionTime: 0.5,
     attackProbability: 0.3,
     evasionSkill: 0.5,
+    trapSpeed: 0.03, // Sekin tuzoq
   ),
   medium(
     reactionTime: 0.3,
     attackProbability: 0.6,
     evasionSkill: 0.7,
+    trapSpeed: 0.05, // O'rtacha tuzoq
   ),
   hard(
     reactionTime: 0.15,
     attackProbability: 0.85,
     evasionSkill: 0.95,
+    trapSpeed: 0.08, // Tez tuzoq
   );
 
   final double reactionTime;
   final double attackProbability;
   final double evasionSkill;
+  final double trapSpeed; // Yangi: tuzoq qurish tezligi
 
   const BotDifficulty({
     required this.reactionTime,
     required this.attackProbability,
     required this.evasionSkill,
+    required this.trapSpeed,
   });
 }
